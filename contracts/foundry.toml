@@ -1,0 +1,17 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+solc_version = "0.8.24"
+# Avalanche C-Chain supports Shanghai opcodes (ACP-24).
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 10000
+
+[profile.ci.fuzz]
+runs = 10000
+
+[rpc_endpoints]
+fuji = "https://api.avax-test.network/ext/bc/C/rpc"
+avalanche = "https://api.avax.network/ext/bc/C/rpc"
