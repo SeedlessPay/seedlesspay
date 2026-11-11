@@ -30,9 +30,15 @@ Freelancer (passkey)            Client (any wallet)
 | Part | Status |
 |---|---|
 | `SeedlessPay.sol` contract + tests | ✅ in this repo |
-| Fuji testnet deployment | ⏳ next |
+| Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
 | Passkey smart account + gas sponsorship | ⏳ |
 | Invoice app (Next.js) | ⏳ |
+
+## Deployments
+
+| Network | SeedlessPay |
+|---|---|
+| Fuji testnet (43113) | [`0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
 
 ## Contract
 
