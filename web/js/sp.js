@@ -228,6 +228,10 @@ export function renderMilestones(ul, invoice, escrow, role, act) {
   invoice.escrow.milestones.forEach((plan, i) => {
     const m = escrow && escrow.milestones[i];
     const st = m ? milestoneState(m) : null;
+    if (st && role === "freelancer") {
+      if (st.status === MS.Released) st.text = "Paid to you";
+      if (st.status === MS.Split) st.text = `${usd(m.splitToPayee)} paid to you by agreement`;
+    }
     const amount = BigInt(plan.amountUnits);
     const li = el("li", "ms");
     const head = el("div", "ms__head");
