@@ -19,9 +19,8 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:site" content="@seedlesspay">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preload" href="/assets/fonts/Sora-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="/assets/fonts/Outfit-latin.woff" as="font" type="font/woff" crossorigin>
   <link rel="stylesheet" href="/styles.css">
   <script>
     (function () {
@@ -211,7 +210,11 @@
       </div>
       <div class="footer__bottom">
         <p>© 2026 SeedlessPay. All rights reserved.</p>
-        <p>SeedlessPay is in beta on the Avalanche test network.</p>
+        <nav class="footer__legal" aria-label="Legal">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+        </nav>
+        <p class="footer__note">SeedlessPay is in beta on the Avalanche test network.</p>
       </div>
     </div>
   </footer>
