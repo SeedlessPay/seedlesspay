@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SeedlessPay — Get paid in dollars. No bank. No seed phrase.</title>
-  <meta name="description" content="Send an invoice link, get paid in USDC on Avalanche, into a wallet you unlock with Face ID. No bank account, no seed phrase.">
+  <meta name="description" content="Send a link. Your client pays. Get paid in dollars, with no bank and no seed phrase.">
   <meta name="theme-color" content="#0f1515">
   <link rel="canonical" href="https://seedlesspay.com/">
   <link rel="icon" href="/assets/favicon.ico" sizes="any">
@@ -14,7 +14,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://seedlesspay.com/">
   <meta property="og:title" content="SeedlessPay — Get paid in dollars">
-  <meta property="og:description" content="Invoice links that get you paid in USDC. No bank. No seed phrase.">
+  <meta property="og:description" content="Send a link. Get paid in dollars. No bank. No seed phrase.">
   <meta property="og:image" content="https://seedlesspay.com/assets/logo-512.png">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:site" content="@seedlesspay">
@@ -35,10 +35,9 @@
       </a>
       <nav class="nav__links" aria-label="Primary">
         <a href="#how">How it works</a>
-        <a href="#proof">Proof</a>
-        <a href="https://github.com/thesithunyein/seedlesspay" rel="noopener">GitHub</a>
+        <a href="#safe">Security</a>
       </nav>
-      <a class="btn btn--small" href="mailto:hello@seedlesspay.com?subject=SeedlessPay%20early%20access">Get early access</a>
+      <a class="btn btn--small" href="mailto:hello@seedlesspay.com?subject=Early%20access">Get early access</a>
     </div>
   </header>
 
@@ -46,125 +45,89 @@
     <section class="hero">
       <div class="wrap hero__grid">
         <div class="hero__copy">
-          <p class="pill"><span class="dot" aria-hidden="true"></span>Live on Avalanche Fuji testnet</p>
+          <p class="pill"><span class="dot" aria-hidden="true"></span>Now in beta</p>
           <h1>Get paid in dollars.<br><em>No bank. No seed phrase.</em></h1>
-          <p class="lede">Send an invoice link. Your client pays in USDC. It lands in a wallet you unlock with Face ID or your fingerprint.</p>
+          <p class="lede">Send a link. Your client pays. The money lands in a wallet only your face or finger can open.</p>
           <div class="cta">
-            <a class="btn" href="mailto:hello@seedlesspay.com?subject=SeedlessPay%20early%20access">Get early access</a>
-            <a class="btn btn--ghost" href="#proof">See it on-chain <span aria-hidden="true">→</span></a>
+            <a class="btn" href="mailto:hello@seedlesspay.com?subject=Early%20access">Get early access</a>
+            <a class="btn btn--ghost" href="#how">How it works</a>
           </div>
-          <p class="fine">Built for freelancers who get paid from abroad.</p>
         </div>
 
-        <figure class="invoice" aria-label="The first real SeedlessPay invoice payment on Fuji testnet">
+        <figure class="invoice" aria-label="A paid SeedlessPay invoice">
           <div class="invoice__head">
             <div>
               <p class="label">Invoice</p>
-              <p class="mono">invoice-001</p>
+              <p class="invoice__no">#001</p>
             </div>
             <span class="status"><span aria-hidden="true">✓</span> Paid</span>
           </div>
-          <p class="amount">1.00 <span>USDC</span></p>
+          <p class="amount">$1.00 <span>USDC</span></p>
           <dl class="invoice__rows">
-            <div><dt>From</dt><dd class="mono">0xBCb9…8A3D</dd></div>
-            <div><dt>To</dt><dd class="mono">0x7A35…9Da2</dd></div>
-            <div><dt>Network</dt><dd>Avalanche Fuji</dd></div>
-            <div><dt>Block</dt><dd class="mono">60,911,344</dd></div>
+            <div><dt>Paid on</dt><dd>Nov 12, 2026</dd></div>
+            <div><dt>Network</dt><dd>Avalanche</dd></div>
+            <div><dt>Fee</dt><dd>Less than $0.01</dd></div>
           </dl>
-          <a class="invoice__link" href="https://testnet.snowtrace.io/tx/0xbe873b973110bb9ebf2a183c18b6636fcd9d49ab25ce2ccfcc41f668d62fa27c" rel="noopener">View transaction <span aria-hidden="true">↗</span></a>
-          <figcaption>Our first real payment, recorded on-chain.</figcaption>
+          <a class="invoice__link" href="https://testnet.snowtrace.io/tx/0xbe873b973110bb9ebf2a183c18b6636fcd9d49ab25ce2ccfcc41f668d62fa27c" rel="noopener">View receipt <span aria-hidden="true">↗</span></a>
         </figure>
-      </div>
-    </section>
-
-    <section class="section" id="problem">
-      <div class="wrap narrow">
-        <p class="eyebrow">The problem</p>
-        <h2>Great work shouldn't be hard to get paid for.</h2>
-        <p class="body">Many freelancers can't use the platforms their clients pay with. The workarounds are slow, expensive and built on trust in a middleman. Stablecoins fix the money. Seed phrases, gas tokens and wrong-network mistakes still keep most people out.</p>
       </div>
     </section>
 
     <section class="section" id="how">
       <div class="wrap">
         <p class="eyebrow">How it works</p>
-        <h2>Three steps. No crypto knowledge needed.</h2>
+        <h2>Three steps. That's it.</h2>
         <ol class="steps">
           <li>
-            <span class="step__n">01</span>
-            <h3>Sign up with a passkey</h3>
-            <p>Your wallet is created with Face ID or your fingerprint. There's nothing to write down and nothing to lose.</p>
+            <span class="step__n">1</span>
+            <h3>Sign up with Face ID</h3>
+            <p>No password. Nothing to write down.</p>
           </li>
           <li>
-            <span class="step__n">02</span>
-            <h3>Send an invoice link</h3>
-            <p>Set the amount and description. Share the link by email, chat or anywhere your client is.</p>
+            <span class="step__n">2</span>
+            <h3>Send a link</h3>
+            <p>Add the amount. Share it anywhere.</p>
           </li>
           <li>
-            <span class="step__n">03</span>
-            <h3>Get paid in USDC</h3>
-            <p>Your client pays from any wallet. The money goes straight to you, and the invoice shows paid.</p>
+            <span class="step__n">3</span>
+            <h3>Get paid</h3>
+            <p>Your client pays. The money is yours right away.</p>
           </li>
         </ol>
       </div>
     </section>
 
-    <section class="section" id="why">
+    <section class="section" id="safe">
       <div class="wrap">
-        <p class="eyebrow">Why SeedlessPay</p>
-        <h2>Built to be trusted with your money.</h2>
+        <p class="eyebrow">Security</p>
+        <h2>Your money stays yours.</h2>
         <div class="features">
           <article>
-            <h3>No seed phrase</h3>
-            <p>Avalanche verifies passkey signatures natively, so your wallet is secured by your device, not 24 words on paper.</p>
+            <h3>We never hold your money</h3>
+            <p>It goes straight from your client to you.</p>
           </article>
           <article>
-            <h3>We never hold your funds</h3>
-            <p>Payments move directly from your client to you in a single transfer. The contract has no balance to lose.</p>
+            <h3>Nothing to lose</h3>
+            <p>Your phone is your key. No 24 words on paper.</p>
           </article>
           <article>
-            <h3>No owner, no backdoor</h3>
-            <p>The contract can't be paused, changed or redirected after deployment. Anyone can read the source.</p>
+            <h3>Paid once. Only once.</h3>
+            <p>An invoice can't be paid twice or blocked.</p>
           </article>
           <article>
-            <h3>Paid exactly once</h3>
-            <p>Each invoice can only be settled once, and nobody can block it by paying first with different terms.</p>
+            <h3>Open for anyone to check</h3>
+            <p>Our code is public. <a href="https://github.com/thesithunyein/seedlesspay" rel="noopener">See it on GitHub ↗</a></p>
           </article>
         </div>
-      </div>
-    </section>
-
-    <section class="section" id="proof">
-      <div class="wrap">
-        <p class="eyebrow">Built in the open</p>
-        <h2>Don't trust us. Check it.</h2>
-        <ul class="proof">
-          <li>
-            <p class="label">Contract · verified source</p>
-            <a class="mono" href="https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3" rel="noopener">0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3 ↗</a>
-          </li>
-          <li>
-            <p class="label">First invoice payment</p>
-            <a class="mono" href="https://testnet.snowtrace.io/tx/0xbe873b973110bb9ebf2a183c18b6636fcd9d49ab25ce2ccfcc41f668d62fa27c" rel="noopener">0xbe87…a27c ↗</a>
-          </li>
-          <li>
-            <p class="label">Test suite</p>
-            <p>15 tests passing, including attack cases and fuzzing</p>
-          </li>
-          <li>
-            <p class="label">Source code</p>
-            <a href="https://github.com/thesithunyein/seedlesspay" rel="noopener">github.com/thesithunyein/seedlesspay ↗</a>
-          </li>
-        </ul>
       </div>
     </section>
 
     <section class="section closing">
       <div class="wrap narrow center">
         <img class="closing__logo" src="/assets/logo-512.png" alt="" width="72" height="72">
-        <h2>Be one of the first freelancers paid with SeedlessPay.</h2>
-        <p class="body">We're onboarding a small group of freelancers for the testnet beta.</p>
-        <a class="btn" href="mailto:hello@seedlesspay.com?subject=SeedlessPay%20early%20access">Get early access</a>
+        <h2>Ready to get paid?</h2>
+        <p class="body">We're letting people in a few at a time.</p>
+        <a class="btn" href="mailto:hello@seedlesspay.com?subject=Early%20access">Get early access</a>
       </div>
     </section>
   </main>
@@ -180,7 +143,7 @@
         <a href="https://x.com/seedlesspay" rel="noopener">X</a>
         <a href="https://github.com/thesithunyein/seedlesspay" rel="noopener">GitHub</a>
       </nav>
-      <p class="fine">Testnet beta. Not yet live on mainnet. Built by <a href="https://sithunyein.com" rel="noopener">Sithu Nyein</a>.</p>
+      <p class="fine">© 2026 SeedlessPay. Beta on Avalanche testnet.</p>
     </div>
   </footer>
 </body>
