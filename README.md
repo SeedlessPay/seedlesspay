@@ -1,14 +1,18 @@
 <p align="center">
-  <img src="web/assets/logo-512.png" alt="SeedlessPay logo" width="112">
+  <img src="web/assets/logo-512.png" alt="SeedlessPay logo" width="128">
 </p>
 
 <h1 align="center">SeedlessPay</h1>
 
-<p align="center"><strong>Get paid in dollars. No bank. No seed phrase.</strong></p>
+<p align="center"><strong>Get paid in dollars without a bank or a seed phrase.</strong></p>
 
-SeedlessPay lets freelancers send an invoice link and get paid in USDC on Avalanche, into a wallet secured by Face ID or a fingerprint (a passkey) instead of a seed phrase.
+<p align="center">
+  <a href="https://seedlesspay.com">seedlesspay.com</a> ·
+  <a href="https://x.com/seedlesspay">@seedlesspay</a> ·
+  <a href="https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3">Contract on Fuji</a>
+</p>
 
-[seedlesspay.com](https://seedlesspay.com) · [@seedlesspay](https://x.com/seedlesspay)
+SeedlessPay lets freelancers send a payment link and get paid in USDC on Avalanche, straight into a wallet they open with Face ID or a fingerprint (a passkey) instead of a seed phrase.
 
 ## The problem
 
