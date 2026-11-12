@@ -10,23 +10,11 @@
 //   waitlist:joined         HASH  email -> ISO timestamp of first signup
 //   waitlist:rate:<iphash>  INT   signups from one IP hash, expires after 1 hour
 
-const crypto = require("crypto");
+const { config, pipeline, overLimit } = require("./_lib/redis");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_PER_HOUR = 10;
 const CONTACT = "hello@seedlesspay.com";
-
-async function redis(url, token, commands) {
-  const res = await fetch(`${url.replace(/\/$/, "")}/pipeline`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(commands),
-  });
-  if (!res.ok) throw new Error(`Upstash responded ${res.status}`);
-  const data = await res.json();
-  for (const item of data) if (item && item.error) throw new Error(`Upstash error: ${item.error}`);
-  return data.map((item) => item.result);
-}
 
 function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -67,25 +55,17 @@ module.exports = async function handler(req, res) {
     return respond(400, { ok: false, error: "Please enter a valid email address." });
   }
 
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (!url || !token) {
+  if (!config()) {
     console.error("waitlist: storage is not configured (missing Upstash env vars)");
     return respond(503, { ok: false, error: `The waitlist is not available right now. Please email ${CONTACT}.` });
   }
 
   try {
-    const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
-    const ipHash = crypto.createHash("sha256").update(ip).digest("hex").slice(0, 32);
-    const rateKey = `waitlist:rate:${ipHash}`;
-
-    const [count] = await redis(url, token, [["INCR", rateKey]]);
-    if (count === 1) await redis(url, token, [["EXPIRE", rateKey, "3600"]]);
-    if (count > MAX_PER_HOUR) {
+    if (await overLimit(req, "waitlist", MAX_PER_HOUR)) {
       return respond(429, { ok: false, error: "Too many attempts. Please try again in an hour." });
     }
 
-    const [added] = await redis(url, token, [
+    const [added] = await pipeline([
       ["SADD", "waitlist:emails", email],
       ["HSETNX", "waitlist:joined", email, new Date().toISOString()],
     ]);

@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your invoices · SeedlessPay</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f7f5f0">
+  <link rel="icon" href="/assets/favicon.ico?v=2" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png?v=2" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/assets/fonts/Sora-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="/assets/fonts/Outfit-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="app-body">
+  <header class="nav">
+    <div class="wrap nav__inner">
+      <a class="brand" href="/" aria-label="SeedlessPay home">
+        <img src="/assets/logo-mark-256.png" alt="" width="36" height="36">
+        <span>seedlesspay</span>
+      </a>
+      <span class="badge">Test network</span>
+    </div>
+  </header>
+
+  <main class="app">
+    <div class="wrap app__wrap">
+
+      <section id="onboard" class="panel panel--center" hidden>
+        <h1>Create your wallet</h1>
+        <p class="muted">Your wallet is protected by Face ID or your fingerprint. There is no password and no seed phrase to write down.</p>
+        <button class="btn" id="create" type="button">Create my wallet</button>
+        <p class="fine">SeedlessPay is in beta on the Avalanche test network. Test tokens have no real value.</p>
+      </section>
+
+      <div id="dash" hidden>
+        <section class="panel balance">
+          <div>
+            <p class="label">Balance</p>
+            <p class="balance__amount" id="balance">—</p>
+            <p class="muted small">USDC on Avalanche</p>
+          </div>
+          <div class="balance__side">
+            <button class="chip-btn" id="copy-address" type="button"><span id="address">—</span> <span aria-hidden="true">⧉</span></button>
+            <a class="link small" href="https://faucet.circle.com" rel="noopener" target="_blank">Get test USDC ↗</a>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>New invoice</h2>
+          <form id="invoice-form" class="form" novalidate>
+            <label class="field">
+              <span>Amount (USD)</span>
+              <input name="amount" inputmode="decimal" placeholder="250.00" autocomplete="off" required>
+            </label>
+            <label class="field">
+              <span>What is this invoice for?</span>
+              <input name="description" maxlength="280" placeholder="Logo design for Acme" required>
+            </label>
+            <div class="form__row">
+              <label class="field">
+                <span>Client name <em>(optional)</em></span>
+                <input name="clientName" maxlength="80" placeholder="Acme Inc.">
+              </label>
+              <label class="field">
+                <span>Due date <em>(optional)</em></span>
+                <input name="dueDate" type="date">
+              </label>
+            </div>
+            <label class="field">
+              <span>Your name on the invoice <em>(optional)</em></span>
+              <input name="fromName" maxlength="80" placeholder="Your name or business">
+            </label>
+            <button class="btn" type="submit">Create invoice</button>
+            <p class="form__msg" id="form-msg" role="status" aria-live="polite"></p>
+          </form>
+
+          <div class="share" id="share" hidden>
+            <p class="share__title">Your invoice is ready</p>
+            <p class="muted small">Send this link to your client. They can pay it from any wallet.</p>
+            <div class="share__link">
+              <input id="share-url" readonly aria-label="Invoice link">
+              <button class="btn btn--small" id="copy-link" type="button">Copy</button>
+            </div>
+            <button class="link" id="native-share" type="button" hidden>Share link</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Your invoices</h2>
+            <button class="link small" id="refresh" type="button">Refresh</button>
+          </div>
+          <ul class="invoices" id="invoices"></ul>
+          <p class="muted small" id="invoices-empty">Invoices you create will appear here.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Send USDC</h2>
+          <p class="muted small">Move money to another wallet or an exchange. We cover the network fee.</p>
+          <form id="send-form" class="form" novalidate>
+            <label class="field">
+              <span>Wallet address</span>
+              <input name="to" placeholder="0x…" autocomplete="off" spellcheck="false" required>
+            </label>
+            <label class="field field--short">
+              <span>Amount (USDC)</span>
+              <input name="amount" inputmode="decimal" placeholder="10.00" autocomplete="off" required>
+            </label>
+            <button class="btn btn--ghost" type="submit">Send with Face ID</button>
+            <p class="form__msg" id="send-msg" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <p class="fine center">This wallet lives on this device and browser. <button class="link" id="forget" type="button">Remove it from this browser</button></p>
+      </div>
+
+      <p class="form__msg center" id="boot-msg" role="status" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { loadViem, USDC, SEEDLESSPAY, EXPLORER, invoiceKey, isPaid, usd, short, formatDate, api, payLink } from "/js/sp.js";
+
+    const STORE = "seedlesspay.wallet";
+    const OLD_STORE = "seedlesspay.spike.credential";
+    const INVOICES = "seedlesspay.invoices";
+    const host = location.hostname;
+    const rpId = host === "seedlesspay.com" || host.endsWith(".seedlesspay.com") ? "seedlesspay.com" : host;
+    const $ = (id) => document.getElementById(id);
+
+    const store = {
+      get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+      del(k) { try { localStorage.removeItem(k); } catch {} },
+    };
+
+    function say(el, text, kind) { el.textContent = text; el.className = "form__msg" + (kind ? ` form__msg--${kind}` : ""); }
+
+    function friendly(e) {
+      console.error(e);
+      const m = String((e && (e.shortMessage || e.message)) || "");
+      if ((e && e.name === "NotAllowedError") || /not allowed|cancel|abort/i.test(m)) return "Face ID was cancelled. Please try again.";
+      if (/not configured|unreachable|not available/i.test(m)) return "Payments are not available right now. Please try again later.";
+      if (/fetch|network|connect/i.test(m)) return "Could not connect. Check your internet and try again.";
+      return "Something went wrong. No money was sent. Please try again.";
+    }
+
+    let v, client, account, bundler;
+
+    async function bundlerRpc(method, params) {
+      const r = await fetch("/api/bundler", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error.message);
+      return j.result;
+    }
+
+    async function setup(cred) {
+      v = await loadViem();
+      client = v.createPublicClient({ chain: v.chain, transport: v.http() });
+      const owner = v.aa.toWebAuthnAccount({ credential: cred, rpId });
+      account = await v.aa.toCoinbaseSmartAccount({ client, owners: [owner] });
+      bundler = v.aa.createBundlerClient({
+        account, client, transport: v.http("/api/bundler"), paymaster: true,
+        userOperation: {
+          estimateFeesPerGas: async () => {
+            const p = await bundlerRpc("pimlico_getUserOperationGasPrice", []);
+            return { maxFeePerGas: BigInt(p.fast.maxFeePerGas), maxPriorityFeePerGas: BigInt(p.fast.maxPriorityFeePerGas) };
+          },
+        },
+      });
+      $("onboard").hidden = true;
+      $("dash").hidden = false;
+      $("address").textContent = short(account.address);
+      say($("boot-msg"), "");
+      await Promise.all([refreshBalance(), renderInvoices()]);
+    }
+
+    async function refreshBalance() {
+      const bal = await client.readContract({ address: USDC, abi: v.erc20Abi, functionName: "balanceOf", args: [account.address] });
+      $("balance").textContent = usd(bal);
+      return bal;
+    }
+
+    // ---- Wallet creation
+    $("create").onclick = async () => {
+      const btn = $("create");
+      btn.disabled = true; btn.textContent = "Waiting for Face ID…";
+      try {
+        v = await loadViem();
+        const c = await v.aa.createWebAuthnCredential({ name: "SeedlessPay", rp: { id: rpId, name: "SeedlessPay" } });
+        const cred = { id: c.id, publicKey: c.publicKey };
+        store.set(STORE, cred);
+        await setup(cred);
+      } catch (e) {
+        say($("boot-msg"), friendly(e), "error");
+      } finally { btn.disabled = false; btn.textContent = "Create my wallet"; }
+    };
+
+    $("forget").onclick = () => {
+      if (!confirm("Remove this wallet from this browser? Your money stays in the wallet, but you will need this same passkey and browser to use it again.")) return;
+      store.del(STORE); store.del(OLD_STORE); location.reload();
+    };
+
+    $("copy-address").onclick = async () => {
+      try { await navigator.clipboard.writeText(account.address); $("address").textContent = "Address copied"; }
+      catch { $("address").textContent = account.address; }
+      setTimeout(() => { $("address").textContent = short(account.address); }, 1600);
+    };
+
+    // ---- Invoices
+    $("invoice-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const f = e.target, msg = $("form-msg"), btn = f.querySelector("button[type=submit]");
+      const amount = f.amount.value.trim().replace(/[$,\s]/g, "");
+      if (!/^\d{1,7}(\.\d{1,6})?$/.test(amount) || Number(amount) < 0.01) return say(msg, "Please enter an amount, for example 250 or 99.50.", "error");
+      if (!f.description.value.trim()) return say(msg, "Please say what this invoice is for.", "error");
+      btn.disabled = true; btn.textContent = "Creating…"; say(msg, "");
+      try {
+        const { invoice } = await api("/api/invoices", { method: "POST", body: JSON.stringify({
+          payee: account.address, amount, description: f.description.value, clientName: f.clientName.value,
+          fromName: f.fromName.value, dueDate: f.dueDate.value,
+        }) });
+        const list = store.get(INVOICES, []);
+        list.unshift({ id: invoice.id, payee: invoice.payee, amountUnits: invoice.amountUnits, description: invoice.description, clientName: invoice.clientName, createdAt: invoice.createdAt });
+        store.set(INVOICES, list.slice(0, 200));
+        f.reset();
+        $("share-url").value = payLink(invoice.id);
+        $("share").hidden = false;
+        $("native-share").hidden = !navigator.share;
+        $("share").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        renderInvoices();
+      } catch (err) {
+        say(msg, err.message, "error");
+      } finally { btn.disabled = false; btn.textContent = "Create invoice"; }
+    };
+
+    $("copy-link").onclick = async () => {
+      const b = $("copy-link");
+      try { await navigator.clipboard.writeText($("share-url").value); b.textContent = "Copied"; }
+      catch { $("share-url").select(); b.textContent = "Select and copy"; }
+      setTimeout(() => { b.textContent = "Copy"; }, 1600);
+    };
+    $("native-share").onclick = () => navigator.share({ title: "Invoice", text: "Here is my invoice. You can pay it with USDC.", url: $("share-url").value }).catch(() => {});
+
+    async function renderInvoices() {
+      const mine = store.get(INVOICES, []).filter((i) => account && i.payee.toLowerCase() === account.address.toLowerCase());
+      const ul = $("invoices");
+      ul.textContent = "";
+      $("invoices-empty").hidden = mine.length > 0;
+      const rows = mine.map((inv) => {
+        const li = document.createElement("li");
+        li.className = "invoice-row";
+        const main = document.createElement("div");
+        const t = document.createElement("p"); t.className = "invoice-row__title"; t.textContent = inv.clientName || inv.description;
+        const s = document.createElement("p"); s.className = "muted small"; s.textContent = (inv.clientName ? inv.description + " · " : "") + formatDate(inv.createdAt);
+        main.append(t, s);
+        const side = document.createElement("div"); side.className = "invoice-row__side";
+        const amt = document.createElement("p"); amt.className = "invoice-row__amount"; amt.textContent = usd(inv.amountUnits);
+        const pill = document.createElement("span"); pill.className = "pill pill--wait"; pill.textContent = "Checking…";
+        const copy = document.createElement("button"); copy.className = "link small"; copy.type = "button"; copy.textContent = "Copy link";
+        copy.onclick = async () => { try { await navigator.clipboard.writeText(payLink(inv.id)); copy.textContent = "Copied"; } catch { prompt("Invoice link", payLink(inv.id)); } setTimeout(() => (copy.textContent = "Copy link"), 1600); };
+        side.append(amt, pill, copy);
+        li.append(main, side);
+        ul.append(li);
+        return { inv, pill };
+      });
+      await Promise.all(rows.map(async ({ inv, pill }) => {
+        try {
+          const paid = await isPaid(v, client, inv);
+          pill.textContent = paid ? "Paid" : "Unpaid";
+          pill.className = "pill " + (paid ? "pill--paid" : "pill--wait");
+        } catch { pill.textContent = "Unknown"; }
+      }));
+    }
+    $("refresh").onclick = () => Promise.all([refreshBalance(), renderInvoices()]).catch((e) => console.error(e));
+
+    // ---- Send USDC
+    $("send-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const f = e.target, msg = $("send-msg"), btn = f.querySelector("button[type=submit]");
+      const to = f.to.value.trim();
+      if (!v.isAddress(to)) return say(msg, "Please enter a valid wallet address.", "error");
+      let amount;
+      try { amount = v.parseUnits(f.amount.value.trim().replace(/[$,\s]/g, ""), 6); } catch { return say(msg, "Please enter an amount, for example 10.", "error"); }
+      if (amount <= 0n) return say(msg, "The amount must be more than zero.", "error");
+      btn.disabled = true; say(msg, "Checking your balance…");
+      try {
+        const bal = await refreshBalance();
+        if (bal < amount) return say(msg, `You have ${usd(bal)}, which is not enough to send ${usd(amount)}.`, "error");
+        say(msg, `Sending ${usd(amount)} to ${short(v.getAddress(to))}. Confirm with Face ID.`);
+        const hash = await bundler.sendUserOperation({ calls: [{ to: USDC, data: v.encodeFunctionData({ abi: v.erc20Abi, functionName: "transfer", args: [v.getAddress(to), amount] }) }] });
+        say(msg, "Sending…");
+        const r = await bundler.waitForUserOperationReceipt({ hash });
+        if (!r.success) return say(msg, "The transfer did not go through. No money was sent.", "error");
+        f.reset();
+        say(msg, `Sent ✓ ${usd(amount)} to ${short(v.getAddress(to))}.`, "ok");
+        await refreshBalance();
+      } catch (err) {
+        say(msg, friendly(err), "error");
+      } finally { btn.disabled = false; }
+    };
+
+    // ---- Start
+    const saved = store.get(STORE, null) || store.get(OLD_STORE, null);
+    if (saved) {
+      store.set(STORE, saved);
+      say($("boot-msg"), "Loading your wallet…");
+      // Never offer "create" here: a new passkey would be a different wallet.
+      setup(saved).catch((e) => { console.error(e); say($("boot-msg"), "Could not load your wallet. Check your internet and reload the page.", "error"); });
+    } else {
+      $("onboard").hidden = false;
+    }
+  </script>
+</body>
+</html>

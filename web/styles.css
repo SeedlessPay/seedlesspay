@@ -444,3 +444,90 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 .closing .join { margin: 32px auto 0; justify-content: center; }
 .closing .join__msg { text-align: center; margin-left: 0; }
 @media (max-width: 480px) { .join .btn { width: 100%; justify-content: center; } }
+
+/* App and payment pages */
+.app-body { min-height: 100vh; }
+.badge { margin-left: auto; padding: 5px 12px; border-radius: 99px; background: rgba(242, 181, 68, 0.16); color: #8a5a06; font-size: 13px; font-weight: 500; }
+[data-theme="dark"] .badge { color: #f2c26b; }
+.app { padding: 40px 0 80px; }
+.app__wrap { max-width: 640px; display: grid; gap: 20px; }
+.app__wrap--narrow { max-width: 520px; }
+#dash { display: grid; gap: 20px; }
+.panel { padding: 28px; border-radius: var(--radius); background: var(--ink-2); border: 1px solid var(--line-2); box-shadow: 0 20px 40px -32px rgba(15, 61, 46, 0.35); }
+.panel h1 { font-size: 32px; margin: 0; }
+.panel h2 { font-size: 20px; margin: 0; max-width: none; }
+.panel--center { text-align: center; display: grid; gap: 16px; justify-items: center; padding: 48px 28px; }
+.panel--center p { max-width: 420px; }
+.panel__head { display: flex; justify-content: space-between; align-items: center; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.center { text-align: center; }
+.link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.fine .link { font-size: inherit; }
+.mono-sm { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; text-align: right; }
+
+.balance { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.balance__amount { font-family: var(--display); font-weight: 600; font-size: 44px; letter-spacing: -0.04em; line-height: 1.1; margin-top: 6px; }
+.balance__side { display: grid; justify-items: end; gap: 8px; }
+.chip-btn { border: 1px solid var(--line-2); background: var(--ink); color: var(--paper); border-radius: 99px; padding: 6px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; cursor: pointer; }
+
+.form { display: grid; gap: 14px; margin-top: 18px; }
+.form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.field em { font-style: normal; color: var(--faint); }
+.field input {
+  height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line-2);
+  background: var(--ink); color: var(--paper); font-size: 16px; min-width: 0;
+}
+.field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.field--short { max-width: 220px; }
+.form .btn, .panel .btn { border: 0; cursor: pointer; justify-content: center; }
+.form .btn { justify-self: start; }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn--block { width: 100%; margin-top: 24px; }
+.form__msg { min-height: 1.3em; font-size: 14px; color: var(--muted); }
+.form__msg--ok { color: var(--accent); font-weight: 500; }
+.form__msg--error { color: #c2410c; }
+[data-theme="dark"] .form__msg--error { color: #fb923c; }
+
+.share { margin-top: 20px; padding: 18px; border-radius: 14px; background: var(--accent-dim); display: grid; gap: 8px; }
+.share__title { font-weight: 500; color: var(--accent); }
+.share__link { display: flex; gap: 8px; }
+.share__link input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--ink-2); color: var(--paper); font-size: 14px; }
+.share .link { justify-self: start; }
+
+.invoices { margin-top: 12px; }
+.invoice-row { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.invoice-row:last-child { border-bottom: 0; }
+.invoice-row__title { font-weight: 500; }
+.invoice-row__side { display: grid; justify-items: end; gap: 4px; flex: none; }
+.invoice-row__amount { font-family: var(--display); font-weight: 600; letter-spacing: -0.02em; }
+.pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+.pill--paid { background: var(--accent-dim); color: var(--accent); }
+.pill--wait { background: rgba(242, 181, 68, 0.16); color: #8a5a06; }
+[data-theme="dark"] .pill--wait { color: #f2c26b; }
+
+.invoice-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.invoice-card__from { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.02em; margin-top: 4px; word-break: break-word; }
+.invoice-card__amount { margin-top: 28px; font-family: var(--display); font-weight: 600; font-size: 56px; letter-spacing: -0.045em; line-height: 1; }
+.rows { margin-top: 24px; border-top: 1px solid var(--line); }
+.rows > div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.rows dt { color: var(--faint); flex: none; }
+.rows dd { text-align: right; word-break: break-word; }
+.no-wallet { margin-top: 16px; display: grid; gap: 8px; text-align: center; color: var(--muted); }
+.no-wallet .btn--block { margin-top: 4px; }
+.paid-box { margin-top: 24px; padding: 18px; border-radius: 14px; background: var(--accent-dim); text-align: center; display: grid; gap: 4px; justify-items: center; }
+.paid-box__title { font-family: var(--display); font-weight: 600; font-size: 22px; color: var(--accent); }
+.note { margin-top: 20px; font-size: 13px; color: var(--faint); text-align: center; }
+
+@media (max-width: 520px) {
+  .panel { padding: 22px; }
+  .form__row { grid-template-columns: 1fr; }
+  .field--short { max-width: none; }
+  .form .btn { justify-self: stretch; }
+  .balance { align-items: flex-start; }
+  .balance__side { justify-items: start; }
+  .invoice-card__amount { font-size: 46px; }
+}
+.app .label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+.app .pill { border: 0; text-transform: none; letter-spacing: 0; padding: 4px 12px; font-size: 13px; }

@@ -41,7 +41,7 @@ Freelancer (passkey)            Client (any wallet)
 | Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
 | Passkey smart account + gas sponsorship | ✅ working on Fuji: [first passkey payment](https://testnet.snowtrace.io/tx/0xa19ccabe4e9ed9ff1330d7ded4a33edeada2de23575a6389beb435ac8780f167) (test page at `/spike`) |
 | Landing page ([`web/`](web/)) | ✅ static, zero dependencies |
-| Invoice app | ⏳ |
+| Invoice app (`/app`, `/pay/<id>`) | ✅ beta on Fuji |
 
 ## Deployments
 
@@ -100,6 +100,12 @@ The landing page in [`web/`](web/) is plain HTML and CSS with no build step. To 
 ### Waitlist
 
 The early-access form posts to [`web/api/waitlist.js`](web/api/waitlist.js), a Vercel Function with no dependencies that stores emails in Upstash Redis (`waitlist:emails` set, `waitlist:joined` hash). Connect a database from **Vercel → Storage → Upstash for Redis**; the function reads `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` or `KV_REST_API_URL`/`KV_REST_API_TOKEN`. Signups are rate limited per hashed IP, and a honeypot field filters bots.
+
+### Invoice app
+
+- **`/app`** (freelancer): Face ID wallet (Coinbase Smart Wallet owned by a passkey), USDC balance, create invoices, share the link, see paid/unpaid status, and send USDC out with gas sponsored.
+- **`/pay/<id>`** (client): shows the invoice and pays it from any browser wallet (MetaMask, Core): switch to Fuji, approve USDC if needed, then `payInvoice`.
+- **`/api/invoices`** stores invoice details in Upstash Redis (`invoice:<id>`, 12-character random ids, input validation, rate limits). Paid status is never stored: both pages read `isPaid` from the contract, using `keccak256("seedlesspay:invoice:<id>")` as the on-chain invoice id.
 
 ### Passkey wallet test (`/spike`)
 
