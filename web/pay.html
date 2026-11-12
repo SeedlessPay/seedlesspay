@@ -72,7 +72,7 @@
 
         <div class="paid-box" id="paid-box" hidden>
           <p class="paid-box__title">Paid ✓</p>
-          <p class="muted small">This invoice has been paid in full.</p>
+          <p class="muted small" id="paid-text">This invoice has been paid in full.</p>
           <a class="link small" id="receipt" href="#" target="_blank" rel="noopener" hidden>View receipt ↗</a>
         </div>
 
@@ -127,10 +127,19 @@
       $("pay").hidden = true; $("wallets").hidden = false;
     }
 
-    function showPaid(txHash) {
+    function showPaid(paid) {
       $("status").textContent = "Paid"; $("status").className = "pill pill--paid";
       $("pay-area").hidden = true; $("paid-box").hidden = false;
-      if (txHash) { $("receipt").href = `${EXPLORER}/tx/${txHash}`; $("receipt").hidden = false; }
+      if (paid && paid.paidAt) $("paid-text").textContent = `Paid in full on ${formatDate(paid.paidAt)} from ${short(paid.payer)}.`;
+      if (paid && paid.txHash) { $("receipt").href = `${EXPLORER}/tx/${paid.txHash}`; $("receipt").hidden = false; }
+    }
+
+    // Asks the server to verify the payment on-chain and save the receipt.
+    async function record(txHash) {
+      try {
+        const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify(txHash ? { id: invoice.id, txHash } : { id: invoice.id }) });
+        if (r.invoice && r.invoice.paid) { invoice = r.invoice; showPaid(invoice.paid); }
+      } catch (e) { console.warn("could not record payment", e); }
     }
 
     function render() {
@@ -185,7 +194,7 @@
         const payee = v.getAddress(invoice.payee);
         const key = invoiceKey(v, invoice.id);
 
-        if (await isPaid(v, client, invoice)) return showPaid();
+        if (await isPaid(v, client, invoice)) { showPaid(invoice.paid); return record(); }
 
         const gas = await client.getBalance({ address: from });
         if (gas === 0n) return say("Your wallet has no AVAX to pay the small network fee. Add a little AVAX on the Avalanche test network and try again.", "error");
@@ -208,7 +217,8 @@
         const receipt = await client.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") return say("The payment did not go through. No money was sent.", "error");
         say("");
-        showPaid(hash);
+        showPaid({ txHash: hash });
+        record(hash);
       } catch (e) {
         say(walletError(e), "error");
       } finally { btn.disabled = false; }
@@ -227,10 +237,11 @@
         return;
       }
       render();
+      if (invoice.paid) return showPaid(invoice.paid);
       try {
         v = await loadViem();
         client = v.createPublicClient({ chain: v.chain, transport: v.http() });
-        if (await isPaid(v, client, invoice)) showPaid();
+        if (await isPaid(v, client, invoice)) { showPaid(); record(); }
         else { $("status").textContent = "Unpaid"; }
       } catch (e) {
         console.error(e);

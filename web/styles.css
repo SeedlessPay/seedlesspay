@@ -538,3 +538,23 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 .wallet-opt img { border-radius: 8px; }
 .wallet-opt__letter { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-dim); color: var(--accent); font-weight: 600; font-size: 14px; flex: none; }
 .wallet-opt img { flex: none; object-fit: contain; }
+
+.panel__actions { display: flex; gap: 16px; flex-wrap: wrap; justify-content: flex-end; }
+.field select { height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--ink); color: var(--paper); font-size: 16px; }
+.field input[readonly] { color: var(--muted); }
+.check { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--paper); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.warn-box { padding: 14px 16px; border-radius: 12px; background: rgba(242, 181, 68, 0.12); color: var(--paper); font-size: 14px; }
+.warn-box ul { margin-top: 6px; padding-left: 18px; list-style: disc; color: var(--muted); }
+.warn-box li + li { margin-top: 4px; }
+.review { padding: 18px; border-radius: 14px; border: 1px solid var(--accent); background: var(--accent-dim); display: grid; gap: 6px; }
+.review__title { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
+.review .mono-sm { text-align: left; }
+.review__actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.subsection { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.book { margin-top: 8px; }
+.book__row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.book__row:last-child { border-bottom: 0; }
+.book__row span:first-child { font-weight: 500; flex: 1; }
+.panel--center .btn--ghost { margin-top: -6px; }
+@media (max-width: 520px) { .panel__head { flex-wrap: wrap; gap: 8px; } .panel__actions { justify-content: flex-start; } .review__actions .btn { flex: 1; } }

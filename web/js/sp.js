@@ -58,10 +58,64 @@ export async function api(path, options = {}) {
     throw new Error("Could not connect. Check your internet and try again.");
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.ok) throw new Error(data.error || "Something went wrong. Please try again.");
-  return data;
+  if (!res.ok || !data.ok) throw Object.assign(new Error(data.error || "Something went wrong. Please try again."), { status: res.status });
+  return { ...data, status: res.status };
 }
 
 export function payLink(id) {
   return `${location.origin}/pay/${id}`;
 }
+
+// ---- Passkey helpers
+export const b64u = {
+  encode: (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+  decode: (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), (c) => c.charCodeAt(0)),
+};
+
+export function rpIdForHost(host = location.hostname) {
+  return host === "seedlesspay.com" || host.endsWith(".seedlesspay.com") ? "seedlesspay.com" : host;
+}
+
+// Asks the device for a passkey signature over a server challenge and signs in.
+export async function signInWithPasskey(knownCredentialId) {
+  const { challenge, rpId } = await api("/api/auth?action=challenge", { method: "POST", body: "{}" });
+  const cred = await navigator.credentials.get({
+    publicKey: {
+      challenge: b64u.decode(challenge),
+      rpId,
+      userVerification: "required",
+      timeout: 60000,
+      allowCredentials: knownCredentialId ? [{ type: "public-key", id: b64u.decode(knownCredentialId) }] : [],
+    },
+  });
+  if (!cred) throw Object.assign(new Error("cancelled"), { name: "NotAllowedError" });
+  const r = cred.response;
+  return api("/api/auth?action=login", {
+    method: "POST",
+    body: JSON.stringify({
+      credentialId: b64u.encode(cred.rawId),
+      authenticatorData: b64u.encode(r.authenticatorData),
+      clientDataJSON: b64u.encode(r.clientDataJSON),
+      signature: b64u.encode(r.signature),
+    }),
+  });
+}
+
+// ---- CSV (safe against spreadsheet formula injection)
+export function toCsv(rows) {
+  const cell = (v) => {
+    let s = v == null ? "" : String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return rows.map((r) => r.map(cell).join(",")).join("\r\n");
+}
+
+export function download(filename, text, type = "text/csv;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob(["﻿" + text], { type }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export const units = (n) => (Number(BigInt(n)) / 1e6).toFixed(2);

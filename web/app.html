@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Your invoices · SeedlessPay</title>
+  <title>Your wallet · SeedlessPay</title>
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#f7f5f0">
   <link rel="icon" href="/assets/favicon.ico?v=2" sizes="any">
@@ -27,19 +27,23 @@
   <main class="app">
     <div class="wrap app__wrap">
 
-      <section id="onboard" class="panel panel--center" hidden>
-        <h1>Create your wallet</h1>
-        <p class="muted">Your wallet is protected by Face ID or your fingerprint. There is no password and no seed phrase to write down.</p>
+      <!-- Signed out -->
+      <section id="gate" class="panel panel--center" hidden>
+        <h1 id="gate-title">Your SeedlessPay wallet</h1>
+        <p class="muted" id="gate-text">Create a wallet protected by Face ID or your fingerprint, or sign in to the wallet you already have. There is no password and no seed phrase.</p>
         <button class="btn" id="create" type="button">Create my wallet</button>
+        <button class="btn btn--ghost" id="signin" type="button">Sign in with Face ID</button>
+        <p class="form__msg" id="gate-msg" role="status" aria-live="polite"></p>
         <p class="fine">SeedlessPay is in beta on the Avalanche test network. Test tokens have no real value.</p>
       </section>
 
+      <!-- Signed in -->
       <div id="dash" hidden>
         <section class="panel balance">
           <div>
             <p class="label">Balance</p>
             <p class="balance__amount" id="balance">—</p>
-            <p class="muted small">USDC on Avalanche</p>
+            <p class="muted small">USDC on Avalanche C-Chain</p>
           </div>
           <div class="balance__side">
             <button class="chip-btn" id="copy-address" type="button"><span id="address">—</span> <span aria-hidden="true">⧉</span></button>
@@ -50,35 +54,24 @@
         <section class="panel">
           <h2>New invoice</h2>
           <form id="invoice-form" class="form" novalidate>
-            <label class="field">
-              <span>Amount (USD)</span>
-              <input name="amount" inputmode="decimal" placeholder="250.00" autocomplete="off" required>
-            </label>
-            <label class="field">
-              <span>What is this invoice for?</span>
-              <input name="description" maxlength="280" placeholder="Logo design for Acme" required>
-            </label>
+            <label class="field"><span>Amount (USD)</span>
+              <input name="amount" inputmode="decimal" placeholder="250.00" autocomplete="off" required></label>
+            <label class="field"><span>What is this invoice for?</span>
+              <input name="description" maxlength="280" placeholder="Logo design for Acme" required></label>
             <div class="form__row">
-              <label class="field">
-                <span>Client name <em>(optional)</em></span>
-                <input name="clientName" maxlength="80" placeholder="Acme Inc.">
-              </label>
-              <label class="field">
-                <span>Due date <em>(optional)</em></span>
-                <input name="dueDate" type="date">
-              </label>
+              <label class="field"><span>Client name <em>(optional)</em></span>
+                <input name="clientName" maxlength="80" placeholder="Acme Inc."></label>
+              <label class="field"><span>Due date <em>(optional)</em></span>
+                <input name="dueDate" type="date"></label>
             </div>
-            <label class="field">
-              <span>Your name on the invoice <em>(optional)</em></span>
-              <input name="fromName" maxlength="80" placeholder="Your name or business">
-            </label>
+            <label class="field"><span>Your name on the invoice <em>(optional)</em></span>
+              <input name="fromName" maxlength="80" placeholder="Your name or business"></label>
             <button class="btn" type="submit">Create invoice</button>
             <p class="form__msg" id="form-msg" role="status" aria-live="polite"></p>
           </form>
-
           <div class="share" id="share" hidden>
             <p class="share__title">Your invoice is ready</p>
-            <p class="muted small">Send this link to your client. They can pay it from any wallet.</p>
+            <p class="muted small">Send this link to your client. They can pay it from any wallet that holds USDC on Avalanche.</p>
             <div class="share__link">
               <input id="share-url" readonly aria-label="Invoice link">
               <button class="btn btn--small" id="copy-link" type="button">Copy</button>
@@ -89,31 +82,62 @@
 
         <section class="panel">
           <div class="panel__head">
-            <h2>Your invoices</h2>
-            <button class="link small" id="refresh" type="button">Refresh</button>
+            <h2>Invoices</h2>
+            <div class="panel__actions">
+              <button class="link small" id="export" type="button">Download records (CSV)</button>
+              <button class="link small" id="refresh" type="button">Refresh</button>
+            </div>
           </div>
           <ul class="invoices" id="invoices"></ul>
-          <p class="muted small" id="invoices-empty">Invoices you create will appear here.</p>
+          <p class="muted small" id="invoices-empty">Invoices you create will appear here. Invoices are kept for 2 years.</p>
         </section>
 
         <section class="panel">
           <h2>Send USDC</h2>
-          <p class="muted small">Move money to another wallet or an exchange. We cover the network fee.</p>
+          <p class="muted small">Move money to another wallet or to an exchange. We cover the network fee.</p>
           <form id="send-form" class="form" novalidate>
-            <label class="field">
-              <span>Wallet address</span>
-              <input name="to" placeholder="0x…" autocomplete="off" spellcheck="false" required>
-            </label>
-            <label class="field field--short">
-              <span>Amount (USDC)</span>
-              <input name="amount" inputmode="decimal" placeholder="10.00" autocomplete="off" required>
-            </label>
-            <button class="btn btn--ghost" type="submit">Send with Face ID</button>
+            <label class="field" id="saved-field" hidden><span>Send to</span>
+              <select id="saved"><option value="">A new address</option></select></label>
+            <label class="field"><span>Wallet address</span>
+              <input name="to" placeholder="0x…" autocomplete="off" spellcheck="false" required></label>
+            <label class="field field--short"><span>Amount (USDC)</span>
+              <input name="amount" inputmode="decimal" placeholder="10.00" autocomplete="off" required></label>
+            <label class="check" id="save-check"><input type="checkbox" name="save"> <span>Save this address</span></label>
+            <label class="field" id="label-field" hidden><span>Name for this address</span>
+              <input name="label" maxlength="40" placeholder="My exchange"></label>
+            <div class="warn-box">
+              <p><strong>Before you send</strong></p>
+              <ul>
+                <li>Only send to an address that accepts <strong>USDC on Avalanche C-Chain</strong>. On an exchange, choose the Avalanche C-Chain deposit network.</li>
+                <li>Sends cannot be undone. For a new address, send a small test amount first.</li>
+              </ul>
+            </div>
+            <button class="btn btn--ghost" type="submit">Review</button>
+            <div class="review" id="review" hidden>
+              <p class="review__title" id="review-text"></p>
+              <p class="mono-sm" id="review-to"></p>
+              <p class="muted small">Network: Avalanche C-Chain · Network fee: paid by SeedlessPay</p>
+              <div class="review__actions">
+                <button class="btn" id="confirm-send" type="button">Confirm with Face ID</button>
+                <button class="btn btn--ghost" id="cancel-send" type="button">Cancel</button>
+              </div>
+            </div>
             <p class="form__msg" id="send-msg" role="status" aria-live="polite"></p>
           </form>
+
+          <div class="subsection" id="book-wrap" hidden>
+            <p class="label">Saved addresses</p>
+            <ul class="book" id="book"></ul>
+          </div>
+
+          <div class="subsection">
+            <p class="label">Money sent</p>
+            <ul class="invoices" id="sent"></ul>
+            <p class="muted small" id="sent-empty">Money you send will appear here.</p>
+          </div>
         </section>
 
-        <p class="fine center">This wallet lives on this device and browser. <button class="link" id="forget" type="button">Remove it from this browser</button></p>
+        <p class="fine center">Signed in with your passkey. <button class="link" id="signout" type="button">Sign out</button></p>
       </div>
 
       <p class="form__msg center" id="boot-msg" role="status" aria-live="polite"></p>
@@ -121,33 +145,51 @@
   </main>
 
   <script type="module">
-    import { loadViem, USDC, SEEDLESSPAY, EXPLORER, invoiceKey, isPaid, usd, short, formatDate, api, payLink } from "/js/sp.js";
+    import { loadViem, USDC, EXPLORER, isPaid, usd, short, formatDate, api, payLink, signInWithPasskey, rpIdForHost, toCsv, download, units } from "/js/sp.js";
 
     const STORE = "seedlesspay.wallet";
     const OLD_STORE = "seedlesspay.spike.credential";
-    const INVOICES = "seedlesspay.invoices";
-    const host = location.hostname;
-    const rpId = host === "seedlesspay.com" || host.endsWith(".seedlesspay.com") ? "seedlesspay.com" : host;
+    const OLD_INVOICES = "seedlesspay.invoices";
+    const rpId = rpIdForHost();
     const $ = (id) => document.getElementById(id);
-
     const store = {
       get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
       set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
       del(k) { try { localStorage.removeItem(k); } catch {} },
     };
-
-    function say(el, text, kind) { el.textContent = text; el.className = "form__msg" + (kind ? ` form__msg--${kind}` : ""); }
+    const say = (el, text, kind) => { el.textContent = text; el.className = el.className.replace(/ ?form__msg--\w+/g, "") + (kind ? ` form__msg--${kind}` : ""); };
 
     function friendly(e) {
       console.error(e);
       const m = String((e && (e.shortMessage || e.message)) || "");
       if ((e && e.name === "NotAllowedError") || /not allowed|cancel|abort/i.test(m)) return "Face ID was cancelled. Please try again.";
-      if (/not configured|unreachable|not available/i.test(m)) return "Payments are not available right now. Please try again later.";
+      if (e && e.status && e.message) return e.message;
+      if (/not configured|unreachable|not available/i.test(m)) return "This is not available right now. Please try again later.";
       if (/fetch|network|connect/i.test(m)) return "Could not connect. Check your internet and try again.";
-      return "Something went wrong. No money was sent. Please try again.";
+      return "Something went wrong. Please try again.";
     }
 
-    let v, client, account, bundler;
+    let v, client, account, bundler, invoices = [], withdrawals = [], book = [];
+
+    // ---------- Sign-in gate
+    function showGate(mode, msg) {
+      $("dash").hidden = true; $("gate").hidden = false; say($("boot-msg"), "");
+      const returning = mode === "returning";
+      $("gate-title").textContent = returning ? "Welcome back" : "Your SeedlessPay wallet";
+      $("gate-text").textContent = returning
+        ? "Sign in with Face ID or your fingerprint to open your wallet."
+        : "Create a wallet protected by Face ID or your fingerprint, or sign in to the wallet you already have. There is no password and no seed phrase.";
+      $("create").hidden = returning;
+      $("signin").className = returning ? "btn" : "btn btn--ghost";
+      say($("gate-msg"), msg || "", msg ? "error" : "");
+    }
+
+    async function walletFor(cred) {
+      v = v || await loadViem();
+      client = client || v.createPublicClient({ chain: v.chain, transport: v.http() });
+      const owner = v.aa.toWebAuthnAccount({ credential: cred, rpId });
+      return v.aa.toCoinbaseSmartAccount({ client, owners: [owner] });
+    }
 
     async function bundlerRpc(method, params) {
       const r = await fetch("/api/bundler", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
@@ -156,26 +198,63 @@
       return j.result;
     }
 
-    async function setup(cred) {
-      v = await loadViem();
-      client = v.createPublicClient({ chain: v.chain, transport: v.http() });
-      const owner = v.aa.toWebAuthnAccount({ credential: cred, rpId });
-      account = await v.aa.toCoinbaseSmartAccount({ client, owners: [owner] });
+    async function open(acct) {
+      const cred = { id: acct.credentialId, publicKey: acct.publicKey };
+      account = await walletFor(cred);
+      if (account.address.toLowerCase() !== acct.wallet.toLowerCase()) {
+        throw Object.assign(new Error("We could not load this wallet safely. Please contact hello@seedlesspay.com."), { status: 500 });
+      }
+      store.set(STORE, cred);
       bundler = v.aa.createBundlerClient({
         account, client, transport: v.http("/api/bundler"), paymaster: true,
-        userOperation: {
-          estimateFeesPerGas: async () => {
-            const p = await bundlerRpc("pimlico_getUserOperationGasPrice", []);
-            return { maxFeePerGas: BigInt(p.fast.maxFeePerGas), maxPriorityFeePerGas: BigInt(p.fast.maxPriorityFeePerGas) };
-          },
-        },
+        userOperation: { estimateFeesPerGas: async () => {
+          const p = await bundlerRpc("pimlico_getUserOperationGasPrice", []);
+          return { maxFeePerGas: BigInt(p.fast.maxFeePerGas), maxPriorityFeePerGas: BigInt(p.fast.maxPriorityFeePerGas) };
+        } },
       });
-      $("onboard").hidden = true;
-      $("dash").hidden = false;
+      $("gate").hidden = true; $("dash").hidden = false; say($("boot-msg"), "");
       $("address").textContent = short(account.address);
-      say($("boot-msg"), "");
-      await Promise.all([refreshBalance(), renderInvoices()]);
+      await importOldInvoices();
+      await Promise.all([refreshBalance(), loadInvoices(), loadBook(), loadSent()]);
     }
+
+    $("create").onclick = async () => {
+      const btn = $("create"); btn.disabled = true; btn.textContent = "Waiting for Face ID…";
+      try {
+        v = v || await loadViem();
+        const c = await v.aa.createWebAuthnCredential({ name: "SeedlessPay", rp: { id: rpId, name: "SeedlessPay" } });
+        const cred = { id: c.id, publicKey: c.publicKey };
+        const w = await walletFor(cred);
+        const { account: acct } = await api("/api/auth?action=register", { method: "POST", body: JSON.stringify({ credentialId: cred.id, publicKey: cred.publicKey, wallet: w.address }) });
+        await open(acct);
+      } catch (e) { say($("gate-msg"), friendly(e), "error"); }
+      finally { btn.disabled = false; btn.textContent = "Create my wallet"; }
+    };
+
+    $("signin").onclick = async () => {
+      const btn = $("signin"); btn.disabled = true;
+      try {
+        const local = store.get(STORE, null);
+        const { account: acct } = await signInWithPasskey(local && local.id);
+        await open(acct);
+      } catch (e) { say($("gate-msg"), friendly(e), "error"); }
+      finally { btn.disabled = false; }
+    };
+
+    $("signout").onclick = async () => {
+      try { await api("/api/auth?action=logout", { method: "POST", body: "{}" }); } catch {}
+      location.reload();
+    };
+
+    // Moves invoices made before accounts existed (stored only in this browser) into the account.
+    async function importOldInvoices() {
+      const old = store.get(OLD_INVOICES, []);
+      if (!old.length) return;
+      try { await api("/api/me?r=import", { method: "POST", body: JSON.stringify({ ids: old.map((i) => i.id) }) }); store.del(OLD_INVOICES); }
+      catch (e) { console.warn("import failed", e); }
+    }
+
+    function onAuthError(e) { if (e && e.status === 401) { showGate("returning", "Your session ended. Please sign in again."); return true; } return false; }
 
     async function refreshBalance() {
       const bal = await client.readContract({ address: USDC, abi: v.erc20Abi, functionName: "balanceOf", args: [account.address] });
@@ -183,33 +262,13 @@
       return bal;
     }
 
-    // ---- Wallet creation
-    $("create").onclick = async () => {
-      const btn = $("create");
-      btn.disabled = true; btn.textContent = "Waiting for Face ID…";
-      try {
-        v = await loadViem();
-        const c = await v.aa.createWebAuthnCredential({ name: "SeedlessPay", rp: { id: rpId, name: "SeedlessPay" } });
-        const cred = { id: c.id, publicKey: c.publicKey };
-        store.set(STORE, cred);
-        await setup(cred);
-      } catch (e) {
-        say($("boot-msg"), friendly(e), "error");
-      } finally { btn.disabled = false; btn.textContent = "Create my wallet"; }
-    };
-
-    $("forget").onclick = () => {
-      if (!confirm("Remove this wallet from this browser? Your money stays in the wallet, but you will need this same passkey and browser to use it again.")) return;
-      store.del(STORE); store.del(OLD_STORE); location.reload();
-    };
-
     $("copy-address").onclick = async () => {
       try { await navigator.clipboard.writeText(account.address); $("address").textContent = "Address copied"; }
       catch { $("address").textContent = account.address; }
       setTimeout(() => { $("address").textContent = short(account.address); }, 1600);
     };
 
-    // ---- Invoices
+    // ---------- Invoices
     $("invoice-form").onsubmit = async (e) => {
       e.preventDefault();
       const f = e.target, msg = $("form-msg"), btn = f.querySelector("button[type=submit]");
@@ -219,99 +278,194 @@
       btn.disabled = true; btn.textContent = "Creating…"; say(msg, "");
       try {
         const { invoice } = await api("/api/invoices", { method: "POST", body: JSON.stringify({
-          payee: account.address, amount, description: f.description.value, clientName: f.clientName.value,
-          fromName: f.fromName.value, dueDate: f.dueDate.value,
+          amount, description: f.description.value, clientName: f.clientName.value, fromName: f.fromName.value, dueDate: f.dueDate.value,
         }) });
-        const list = store.get(INVOICES, []);
-        list.unshift({ id: invoice.id, payee: invoice.payee, amountUnits: invoice.amountUnits, description: invoice.description, clientName: invoice.clientName, createdAt: invoice.createdAt });
-        store.set(INVOICES, list.slice(0, 200));
         f.reset();
         $("share-url").value = payLink(invoice.id);
-        $("share").hidden = false;
-        $("native-share").hidden = !navigator.share;
+        $("share").hidden = false; $("native-share").hidden = !navigator.share;
         $("share").scrollIntoView({ behavior: "smooth", block: "nearest" });
-        renderInvoices();
-      } catch (err) {
-        say(msg, err.message, "error");
-      } finally { btn.disabled = false; btn.textContent = "Create invoice"; }
+        invoices.unshift(invoice); renderInvoices();
+      } catch (err) { if (!onAuthError(err)) say(msg, friendly(err), "error"); }
+      finally { btn.disabled = false; btn.textContent = "Create invoice"; }
     };
 
     $("copy-link").onclick = async () => {
       const b = $("copy-link");
-      try { await navigator.clipboard.writeText($("share-url").value); b.textContent = "Copied"; }
-      catch { $("share-url").select(); b.textContent = "Select and copy"; }
+      try { await navigator.clipboard.writeText($("share-url").value); b.textContent = "Copied"; } catch { $("share-url").select(); b.textContent = "Select and copy"; }
       setTimeout(() => { b.textContent = "Copy"; }, 1600);
     };
     $("native-share").onclick = () => navigator.share({ title: "Invoice", text: "Here is my invoice. You can pay it with USDC.", url: $("share-url").value }).catch(() => {});
 
-    async function renderInvoices() {
-      const mine = store.get(INVOICES, []).filter((i) => account && i.payee.toLowerCase() === account.address.toLowerCase());
-      const ul = $("invoices");
-      ul.textContent = "";
-      $("invoices-empty").hidden = mine.length > 0;
-      const rows = mine.map((inv) => {
-        const li = document.createElement("li");
-        li.className = "invoice-row";
+    async function loadInvoices() {
+      try { ({ invoices } = await api("/api/me?r=invoices")); } catch (e) { if (onAuthError(e)) return; console.error(e); }
+      renderInvoices();
+      // Invoices paid on-chain but not yet recorded: ask the server to verify and record them.
+      await Promise.all(invoices.filter((i) => !i.paid).map(async (inv) => {
+        try {
+          if (!(await isPaid(v, client, inv))) return;
+          const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify({ id: inv.id }) });
+          Object.assign(inv, r.invoice); if (!inv.paid) inv.paidPending = true;
+        } catch (e) { console.warn(e); }
+      }));
+      renderInvoices();
+    }
+
+    function renderInvoices() {
+      const ul = $("invoices"); ul.textContent = "";
+      $("invoices-empty").hidden = invoices.length > 0;
+      for (const inv of invoices) {
+        const li = document.createElement("li"); li.className = "invoice-row";
         const main = document.createElement("div");
         const t = document.createElement("p"); t.className = "invoice-row__title"; t.textContent = inv.clientName || inv.description;
-        const s = document.createElement("p"); s.className = "muted small"; s.textContent = (inv.clientName ? inv.description + " · " : "") + formatDate(inv.createdAt);
+        const s = document.createElement("p"); s.className = "muted small";
+        s.textContent = (inv.clientName ? inv.description + " · " : "") + (inv.paid ? `Paid ${formatDate(inv.paid.paidAt)}` : `Created ${formatDate(inv.createdAt)}`);
         main.append(t, s);
         const side = document.createElement("div"); side.className = "invoice-row__side";
         const amt = document.createElement("p"); amt.className = "invoice-row__amount"; amt.textContent = usd(inv.amountUnits);
-        const pill = document.createElement("span"); pill.className = "pill pill--wait"; pill.textContent = "Checking…";
-        const copy = document.createElement("button"); copy.className = "link small"; copy.type = "button"; copy.textContent = "Copy link";
-        copy.onclick = async () => { try { await navigator.clipboard.writeText(payLink(inv.id)); copy.textContent = "Copied"; } catch { prompt("Invoice link", payLink(inv.id)); } setTimeout(() => (copy.textContent = "Copy link"), 1600); };
-        side.append(amt, pill, copy);
-        li.append(main, side);
-        ul.append(li);
-        return { inv, pill };
-      });
-      await Promise.all(rows.map(async ({ inv, pill }) => {
-        try {
-          const paid = await isPaid(v, client, inv);
-          pill.textContent = paid ? "Paid" : "Unpaid";
-          pill.className = "pill " + (paid ? "pill--paid" : "pill--wait");
-        } catch { pill.textContent = "Unknown"; }
-      }));
+        const pill = document.createElement("span");
+        pill.className = "pill " + (inv.paid || inv.paidPending ? "pill--paid" : "pill--wait");
+        pill.textContent = inv.paid || inv.paidPending ? "Paid" : "Unpaid";
+        side.append(amt, pill);
+        if (inv.paid) {
+          const a = document.createElement("a"); a.className = "link small"; a.href = `${EXPLORER}/tx/${inv.paid.txHash}`; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Receipt ↗";
+          side.append(a);
+        } else {
+          const copy = document.createElement("button"); copy.className = "link small"; copy.type = "button"; copy.textContent = "Copy link";
+          copy.onclick = async () => { try { await navigator.clipboard.writeText(payLink(inv.id)); copy.textContent = "Copied"; } catch { prompt("Invoice link", payLink(inv.id)); } setTimeout(() => (copy.textContent = "Copy link"), 1600); };
+          side.append(copy);
+        }
+        li.append(main, side); ul.append(li);
+      }
     }
-    $("refresh").onclick = () => Promise.all([refreshBalance(), renderInvoices()]).catch((e) => console.error(e));
 
-    // ---- Send USDC
+    $("refresh").onclick = () => Promise.all([refreshBalance(), loadInvoices(), loadSent()]).catch(console.error);
+
+    $("export").onclick = () => {
+      const rows = [["Date", "Type", "Status", "Description", "Client", "Amount (USDC)", "From", "To", "Transaction", "Invoice link"]];
+      for (const i of invoices) rows.push([
+        (i.paid && i.paid.paidAt) || i.createdAt, "Invoice", i.paid ? "Paid" : "Unpaid", i.description, i.clientName, units(i.amountUnits),
+        i.paid ? i.paid.payer : "", i.payee, i.paid ? i.paid.txHash : "", payLink(i.id),
+      ]);
+      for (const w of withdrawals) rows.push([w.sentAt, "Sent", "Completed", w.label ? `Sent to ${w.label}` : "Sent", "", units(w.amountUnits), account.address, w.to, w.txHash, ""]);
+      download(`seedlesspay-records-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
+    };
+
+    // ---------- Saved addresses
+    async function loadBook() {
+      try { ({ addresses: book } = await api("/api/me?r=addresses")); } catch (e) { if (onAuthError(e)) return; book = []; }
+      renderBook();
+    }
+    function renderBook() {
+      const sel = $("saved"); sel.length = 1;
+      for (const b of book) { const o = document.createElement("option"); o.value = b.address; o.textContent = `${b.label} (${short(b.address)})`; sel.append(o); }
+      $("saved-field").hidden = book.length === 0;
+      const ul = $("book"); ul.textContent = "";
+      $("book-wrap").hidden = book.length === 0;
+      for (const b of book) {
+        const li = document.createElement("li"); li.className = "book__row";
+        const t = document.createElement("span"); t.textContent = b.label;
+        const a = document.createElement("span"); a.className = "mono-sm"; a.textContent = short(b.address);
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "link small"; rm.textContent = "Remove";
+        rm.onclick = async () => {
+          if (!confirm(`Remove "${b.label}" from your saved addresses?`)) return;
+          try { ({ addresses: book } = await api(`/api/me?r=addresses&address=${encodeURIComponent(b.address)}`, { method: "DELETE" })); renderBook(); }
+          catch (e) { if (!onAuthError(e)) alert(friendly(e)); }
+        };
+        li.append(t, a, rm); ul.append(li);
+      }
+    }
+    $("saved").onchange = () => {
+      const f = $("send-form"), addr = $("saved").value;
+      f.to.value = addr; f.to.readOnly = !!addr;
+      $("save-check").hidden = !!addr; if (addr) { f.save.checked = false; $("label-field").hidden = true; }
+      hideReview();
+    };
+    $("send-form").save.onchange = (e) => { $("label-field").hidden = !e.target.checked; };
+
+    // ---------- Send USDC
+    let pending = null;
+    function hideReview() { $("review").hidden = true; pending = null; }
+    for (const n of ["to", "amount"]) $("send-form")[n].addEventListener("input", hideReview);
+
     $("send-form").onsubmit = async (e) => {
       e.preventDefault();
-      const f = e.target, msg = $("send-msg"), btn = f.querySelector("button[type=submit]");
+      const f = e.target, msg = $("send-msg");
+      say(msg, ""); hideReview();
       const to = f.to.value.trim();
       if (!v.isAddress(to)) return say(msg, "Please enter a valid wallet address.", "error");
+      if (to.toLowerCase() === account.address.toLowerCase()) return say(msg, "This is your own wallet.", "error");
       let amount;
       try { amount = v.parseUnits(f.amount.value.trim().replace(/[$,\s]/g, ""), 6); } catch { return say(msg, "Please enter an amount, for example 10.", "error"); }
       if (amount <= 0n) return say(msg, "The amount must be more than zero.", "error");
-      btn.disabled = true; say(msg, "Checking your balance…");
+      if (f.save.checked && !f.label.value.trim()) return say(msg, "Please give this address a name, or untick \"Save this address\".", "error");
+      const bal = await refreshBalance();
+      if (bal < amount) return say(msg, `You have ${usd(bal)}, which is not enough to send ${usd(amount)}.`, "error");
+      const saved = book.find((b) => b.address.toLowerCase() === to.toLowerCase());
+      pending = { to: v.getAddress(to), amount, label: saved ? saved.label : (f.save.checked ? f.label.value.trim() : ""), save: f.save.checked };
+      $("review-text").textContent = `Send ${usd(amount)} USDC to ${pending.label || "this address"}`;
+      $("review-to").textContent = pending.to;
+      $("review").hidden = false;
+      $("review").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    $("cancel-send").onclick = hideReview;
+
+    $("confirm-send").onclick = async () => {
+      if (!pending) return;
+      const p = pending, msg = $("send-msg"), btn = $("confirm-send");
+      btn.disabled = true; say(msg, "Confirm with Face ID.");
       try {
-        const bal = await refreshBalance();
-        if (bal < amount) return say(msg, `You have ${usd(bal)}, which is not enough to send ${usd(amount)}.`, "error");
-        say(msg, `Sending ${usd(amount)} to ${short(v.getAddress(to))}. Confirm with Face ID.`);
-        const hash = await bundler.sendUserOperation({ calls: [{ to: USDC, data: v.encodeFunctionData({ abi: v.erc20Abi, functionName: "transfer", args: [v.getAddress(to), amount] }) }] });
+        const hash = await bundler.sendUserOperation({ calls: [{ to: USDC, data: v.encodeFunctionData({ abi: v.erc20Abi, functionName: "transfer", args: [p.to, p.amount] }) }] });
         say(msg, "Sending…");
         const r = await bundler.waitForUserOperationReceipt({ hash });
         if (!r.success) return say(msg, "The transfer did not go through. No money was sent.", "error");
-        f.reset();
-        say(msg, `Sent ✓ ${usd(amount)} to ${short(v.getAddress(to))}.`, "ok");
-        await refreshBalance();
-      } catch (err) {
-        say(msg, friendly(err), "error");
-      } finally { btn.disabled = false; }
+        hideReview(); $("send-form").reset(); $("send-form").to.readOnly = false; $("label-field").hidden = true; $("save-check").hidden = false;
+        say(msg, `Sent ✓ ${usd(p.amount)} to ${p.label || short(p.to)}.`, "ok");
+        if (p.save && p.label) { try { ({ addresses: book } = await api("/api/me?r=addresses", { method: "POST", body: JSON.stringify({ label: p.label, address: p.to }) })); renderBook(); } catch (e) { console.warn(e); } }
+        try { await api("/api/me?r=withdrawals", { method: "POST", body: JSON.stringify({ txHash: r.receipt.transactionHash }) }); } catch (e) { console.warn(e); }
+        await Promise.all([refreshBalance(), loadSent()]);
+      } catch (e) { if (!onAuthError(e)) say(msg, friendly(e) + " No money was sent.", "error"); }
+      finally { btn.disabled = false; }
     };
 
-    // ---- Start
-    const saved = store.get(STORE, null) || store.get(OLD_STORE, null);
-    if (saved) {
-      store.set(STORE, saved);
-      say($("boot-msg"), "Loading your wallet…");
-      // Never offer "create" here: a new passkey would be a different wallet.
-      setup(saved).catch((e) => { console.error(e); say($("boot-msg"), "Could not load your wallet. Check your internet and reload the page.", "error"); });
-    } else {
-      $("onboard").hidden = false;
+    async function loadSent() {
+      try { ({ withdrawals } = await api("/api/me?r=withdrawals")); } catch (e) { if (onAuthError(e)) return; withdrawals = []; }
+      const ul = $("sent"); ul.textContent = "";
+      $("sent-empty").hidden = withdrawals.length > 0;
+      for (const w of withdrawals) {
+        const li = document.createElement("li"); li.className = "invoice-row";
+        const main = document.createElement("div");
+        const t = document.createElement("p"); t.className = "invoice-row__title"; t.textContent = w.label || short(w.to);
+        const s = document.createElement("p"); s.className = "muted small"; s.textContent = `Sent ${formatDate(w.sentAt)}`;
+        main.append(t, s);
+        const side = document.createElement("div"); side.className = "invoice-row__side";
+        const amt = document.createElement("p"); amt.className = "invoice-row__amount"; amt.textContent = "−" + usd(w.amountUnits);
+        const a = document.createElement("a"); a.className = "link small"; a.href = `${EXPLORER}/tx/${w.txHash}`; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Receipt ↗";
+        side.append(amt, a); li.append(main, side); ul.append(li);
+      }
     }
+
+    // ---------- Start
+    (async () => {
+      say($("boot-msg"), "Loading…");
+      try {
+        const { account: acct } = await api("/api/auth?action=me");
+        return await open(acct);
+      } catch (e) {
+        if (e.status && e.status !== 401) { console.error(e); return showGate("returning", friendly(e)); }
+      }
+      // Not signed in. A wallet made before accounts existed is registered automatically (no prompt).
+      const local = store.get(STORE, null) || store.get(OLD_STORE, null);
+      if (!local) return showGate("new");
+      try {
+        const w = await walletFor(local);
+        const { account: acct } = await api("/api/auth?action=register", { method: "POST", body: JSON.stringify({ credentialId: local.id, publicKey: local.publicKey, wallet: w.address }) });
+        return await open(acct);
+      } catch (e) {
+        if (e.status === 409) return showGate("returning");
+        console.error(e);
+        return showGate("returning", friendly(e));
+      }
+    })();
   </script>
 </body>
 </html>

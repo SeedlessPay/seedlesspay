@@ -103,9 +103,12 @@ The early-access form posts to [`web/api/waitlist.js`](web/api/waitlist.js), a V
 
 ### Invoice app
 
-- **`/app`** (freelancer): Face ID wallet (Coinbase Smart Wallet owned by a passkey), USDC balance, create invoices, share the link, see paid/unpaid status, and send USDC out with gas sponsored.
-- **`/pay/<id>`** (client): shows the invoice and pays it from any browser wallet (MetaMask, Core): switch to Fuji, approve USDC if needed, then `payInvoice`.
-- **`/api/invoices`** stores invoice details in Upstash Redis (`invoice:<id>`, 12-character random ids, input validation, rate limits). Paid status is never stored: both pages read `isPaid` from the contract, using `keccak256("seedlesspay:invoice:<id>")` as the on-chain invoice id.
+- **`/app`** (freelancer): create a wallet with Face ID or sign in with a synced passkey on any device; USDC balance; create invoices and share links; invoice list with verified payment receipts; CSV export of records; send USDC with saved addresses, a review step and C-Chain warnings; history of money sent.
+- **`/pay/<id>`** (client): invoice details; pay from any browser wallet (wallet chooser via EIP-6963): switch to Fuji, check AVAX and USDC, approve if needed, `payInvoice`; shows the verified receipt.
+
+**Accounts** ([`web/api/auth.js`](web/api/auth.js)): the passkey's public key, credential ID and wallet address are stored server-side, so the same wallet opens on any device. Sign-in verifies a WebAuthn assertion (P-256, Node crypto): one-time server challenge, origin and RP ID checks, user verification flag. Sessions are HttpOnly cookies (30 days); state-changing requests must be same-origin.
+
+**Records** ([`web/api/invoices.js`](web/api/invoices.js), [`web/api/me.js`](web/api/me.js)): invoices are kept for 2 years. A payment or withdrawal is recorded only after it is verified on-chain: the `InvoicePaid` event must match the invoice id (`keccak256("seedlesspay:invoice:<id>")`), payee and amount; a withdrawal must be a USDC `Transfer` from the user's wallet. Data lives in Upstash Redis.
 
 ### Passkey wallet test (`/spike`)
 
