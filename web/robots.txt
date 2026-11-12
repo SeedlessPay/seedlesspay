@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /app
+Disallow: /pay
+Disallow: /spike
+Disallow: /api/
+
+Sitemap: https://seedlesspay.com/sitemap.xml
