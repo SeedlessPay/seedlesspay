@@ -112,7 +112,7 @@ ol, ul { padding: 0; list-style: none; }
     radial-gradient(60rem 30rem at 85% -10%, var(--glow), transparent 60%),
     radial-gradient(40rem 24rem at -10% 20%, var(--glow-2), transparent 60%);
 }
-.hero__grid { display: grid; grid-template-columns: 1.3fr 0.9fr; gap: 56px; align-items: center; position: relative; }
+.hero__grid { display: grid; grid-template-columns: 1.35fr 0.85fr; gap: 48px; align-items: center; position: relative; }
 
 .pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -124,7 +124,7 @@ ol, ul { padding: 0; list-style: none; }
 
 h1 {
   margin-top: 24px;
-  font-family: var(--display); font-weight: 600; font-size: clamp(42px, 5.6vw, 68px); line-height: 1.06; letter-spacing: -0.04em;
+  font-family: var(--display); font-weight: 600; font-size: clamp(38px, 5vw, 56px); line-height: 1.08; letter-spacing: -0.04em;
 }
 h1 em, h2 em {
   font-style: normal;
@@ -240,3 +240,4 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 .tilt:hover { transform: perspective(60rem) rotateX(0deg) rotateY(0deg) translateY(-2px); }
 @media (max-width: 900px) { .tilt, .tilt:hover { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tilt, .tilt:hover { transform: none; transition: none; } }
+@media (max-width: 600px) { h1 { text-wrap: balance; } }
