@@ -1,6 +1,10 @@
-# SeedlessPay
+<p align="center">
+  <img src="web/assets/logo-512.png" alt="SeedlessPay logo" width="112">
+</p>
 
-**Get paid in dollars. No bank. No seed phrase.**
+<h1 align="center">SeedlessPay</h1>
+
+<p align="center"><strong>Get paid in dollars. No bank. No seed phrase.</strong></p>
 
 SeedlessPay lets freelancers send an invoice link and get paid in USDC on Avalanche, into a wallet secured by Face ID or a fingerprint (a passkey) instead of a seed phrase.
 
@@ -32,7 +36,8 @@ Freelancer (passkey)            Client (any wallet)
 | `SeedlessPay.sol` contract + tests | ✅ in this repo |
 | Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
 | Passkey smart account + gas sponsorship | ⏳ |
-| Invoice app (Next.js) | ⏳ |
+| Landing page ([`web/`](web/)) | ✅ static, zero dependencies |
+| Invoice app | ⏳ |
 
 ## Deployments
 
@@ -83,6 +88,10 @@ USDC addresses used by the deploy script:
 |---|---|---|
 | Fuji testnet | 43113 | `0x5425890298aed601595a70AB815c96711a31Bc65` |
 | Avalanche C-Chain | 43114 | `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E` |
+
+## Website
+
+The landing page in [`web/`](web/) is plain HTML and CSS with no build step. To host it on Vercel, import this repo and set **Root Directory** to `web` (Framework preset: Other).
 
 ## Builder
 
