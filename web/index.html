@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SeedlessPay: get paid in dollars without a bank or a seed phrase</title>
   <meta name="description" content="SeedlessPay lets freelancers send a payment link and get paid in USDC, straight into a wallet they open with Face ID. No bank account or seed phrase needed.">
-  <meta name="theme-color" content="#0f1515">
+  <meta name="theme-color" content="#f7f5f0">
   <link rel="canonical" href="https://seedlesspay.com/">
   <link rel="icon" href="/assets/favicon.ico" sizes="any">
   <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
@@ -27,7 +27,7 @@
     (function () {
       var t = null;
       try { t = localStorage.getItem("theme"); } catch (e) {}
-      if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      if (t !== "light" && t !== "dark") t = "light";
       document.documentElement.setAttribute("data-theme", t);
     })();
   </script>
