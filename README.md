@@ -39,7 +39,7 @@ Freelancer (passkey)            Client (any wallet)
 |---|---|
 | `SeedlessPay.sol` contract + tests | ✅ in this repo |
 | Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
-| Passkey smart account + gas sponsorship | 🧪 test page at `/spike` (Coinbase Smart Wallet + Pimlico on Fuji) |
+| Passkey smart account + gas sponsorship | ✅ working on Fuji: [first passkey payment](https://testnet.snowtrace.io/tx/0xa19ccabe4e9ed9ff1330d7ded4a33edeada2de23575a6389beb435ac8780f167) (test page at `/spike`) |
 | Landing page ([`web/`](web/)) | ✅ static, zero dependencies |
 | Invoice app | ⏳ |
 

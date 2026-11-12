@@ -26,7 +26,10 @@
     .kv { margin-top: 14px; display: grid; gap: 6px; }
     .kv div { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
     .kv dt { color: var(--faint); }
-    .log { margin-top: 20px; padding: 16px; border-radius: 12px; background: var(--ink); border: 1px solid var(--line); font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: pre-wrap; word-break: break-all; min-height: 80px; }
+    .log { margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: var(--ink); border: 1px solid var(--line); font-size: 15px; line-height: 1.6; color: var(--muted); min-height: 64px; }
+    .log div + div { margin-top: 6px; }
+    .log .ok { color: var(--accent); font-weight: 500; }
+    .log .err { color: #c2410c; }
     .log a { color: var(--accent); }
     .warn { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(242, 181, 68, 0.14); color: #7a5208; font-size: 14px; }
   </style>
@@ -52,7 +55,7 @@
         <h2>1. Create or use your passkey</h2>
         <p>Your passkey stays on your device. Only its public key is saved in this browser.</p>
         <div class="row">
-          <button class="btn" id="create">Create passkey</button>
+          <button class="btn" id="create">Create my wallet</button>
           <button class="btn btn--ghost" id="forget" hidden>Forget on this browser</button>
         </div>
       </section>
@@ -61,7 +64,7 @@
         <h2>2. Your wallet</h2>
         <dl class="kv">
           <div><dt>Address</dt><dd class="mono" id="addr">—</dd></div>
-          <div><dt>Deployed</dt><dd id="deployed">—</dd></div>
+          <div><dt>Status</dt><dd id="deployed">—</dd></div>
           <div><dt>USDC balance</dt><dd id="bal">—</dd></div>
         </dl>
         <p>Send test USDC to this address from <a href="https://faucet.circle.com" rel="noopener">faucet.circle.com</a> (choose Avalanche Fuji).</p>
@@ -70,15 +73,15 @@
 
       <section class="card">
         <h2>3. Pay an invoice with Face ID</h2>
-        <p>Approves USDC and calls <span class="mono">payInvoice</span> on the SeedlessPay contract in one gas-free transaction.</p>
+        <p>Send USDC to someone. You confirm with Face ID, and we cover the network fee.</p>
         <div class="row">
-          <input class="field" id="payee" placeholder="Payee address (0x…)" autocomplete="off">
-          <input class="field" id="amount" placeholder="Amount in USDC" value="0.10" inputmode="decimal" style="flex:0 1 140px">
+          <input class="field" id="payee" placeholder="Recipient's wallet address (0x…)" autocomplete="off">
+          <input class="field" id="amount" placeholder="Amount (USDC)" value="0.10" inputmode="decimal" style="flex:0 1 140px">
         </div>
-        <div class="row"><button class="btn" id="pay" disabled>Pay with passkey</button></div>
+        <div class="row"><button class="btn" id="pay" disabled>Pay with Face ID</button></div>
       </section>
 
-      <div class="log" id="log" aria-live="polite">Ready.</div>
+      <div class="log" id="log" aria-live="polite"><div>Ready when you are.</div></div>
     </div>
   </main>
 
@@ -97,7 +100,17 @@
 
     const $ = (id) => document.getElementById(id);
     const logEl = $("log");
-    const log = (msg, html) => { const line = document.createElement("div"); if (html) line.innerHTML = msg; else line.textContent = msg; logEl.appendChild(line); logEl.scrollTop = logEl.scrollHeight; };
+    const log = (msg, kind, html) => { const line = document.createElement("div"); if (kind) line.className = kind; if (html) line.innerHTML = msg; else line.textContent = msg; logEl.appendChild(line); logEl.scrollTop = logEl.scrollHeight; };
+    const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+    const usd = (v) => `$${Number(formatUnits(v, 6)).toFixed(2)}`;
+    function friendly(e) {
+      console.error(e);
+      const m = String((e && (e.shortMessage || e.message)) || "");
+      if ((e && e.name === "NotAllowedError") || /not allowed|cancel|abort/i.test(m)) return "Face ID was cancelled. Tap the button to try again.";
+      if (/not configured|unreachable/i.test(m)) return "Payments are not available right now. Please try again later.";
+      if (/fetch|network/i.test(m)) return "Could not connect. Check your internet and try again.";
+      return "Something went wrong. No money was sent. Please try again.";
+    }
 
     const client = createPublicClient({ chain: avalancheFuji, transport: http() });
 
@@ -126,7 +139,7 @@
         },
       });
       $("addr").textContent = account.address;
-      $("create").textContent = "Passkey ready";
+      $("create").textContent = "Wallet ready";
       $("create").disabled = true;
       $("forget").hidden = false;
       $("refresh").disabled = false;
@@ -140,53 +153,56 @@
         client.getCode({ address: account.address }),
       ]);
       $("bal").textContent = `${formatUnits(bal, 6)} USDC`;
-      $("deployed").textContent = code && code !== "0x" ? "Yes" : "Not yet (deploys with your first payment)";
+      $("deployed").textContent = code && code !== "0x" ? "Active" : "Activates with your first payment";
+      return bal;
     }
 
     $("create").onclick = async () => {
       try {
-        log("Creating passkey… follow the Face ID or fingerprint prompt.");
+        log("Confirm with Face ID or your fingerprint to create your wallet.");
         const c = await createWebAuthnCredential({ name: "SeedlessPay", rp: { id: rpId, name: "SeedlessPay" } });
         const cred = { id: c.id, publicKey: c.publicKey };
         saveCredential(cred);
-        log("Passkey created.");
         await setup(cred);
-        log(`Wallet address: ${account.address}`);
-      } catch (e) { log("Could not create passkey: " + e.message); }
+        log("Your wallet is ready. Add USDC to start.", "ok");
+      } catch (e) { log(friendly(e), "err"); }
     };
 
     $("forget").onclick = () => { try { localStorage.removeItem(STORE); } catch {} location.reload(); };
-    $("refresh").onclick = () => refresh().catch((e) => log("Refresh failed: " + e.message));
+    $("refresh").onclick = () => refresh().then(() => log("Balance updated.")).catch(() => log("Could not load your balance. Check your internet and try again.", "err"));
 
     $("pay").onclick = async () => {
       const payee = $("payee").value.trim();
-      if (!isAddress(payee)) { log("Enter a valid payee address."); return; }
+      if (!isAddress(payee)) { log("Please enter a valid wallet address for the person you are paying.", "err"); return; }
       let amount;
-      try { amount = parseUnits($("amount").value.trim(), 6); } catch { log("Enter a valid amount."); return; }
-      if (amount <= 0n) { log("Amount must be more than zero."); return; }
+      try { amount = parseUnits($("amount").value.trim(), 6); } catch { log("Please enter an amount, for example 0.10.", "err"); return; }
+      if (amount <= 0n) { log("The amount must be more than zero.", "err"); return; }
       const invoiceId = keccak256(toHex(`spike-${Date.now()}`));
       $("pay").disabled = true;
       try {
-        log(`Paying ${formatUnits(amount, 6)} USDC to ${getAddress(payee)}… approve with your passkey.`);
+        const balance = await refresh();
+        if (balance < amount) { log(`You have ${usd(balance)} USDC, which is not enough to send ${usd(amount)}. Add USDC and try again.`, "err"); return; }
+        log(`Sending ${usd(amount)} to ${short(getAddress(payee))}. Confirm with Face ID.`);
         const hash = await bundler.sendUserOperation({
           calls: [
             { to: USDC, data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [SEEDLESSPAY, amount] }) },
             { to: SEEDLESSPAY, data: encodeFunctionData({ abi: PAY_ABI, functionName: "payInvoice", args: [invoiceId, getAddress(payee), amount] }) },
           ],
         });
-        log(`User operation sent: ${hash}. Waiting for confirmation…`);
+        log("Sending your payment…");
         const receipt = await bundler.waitForUserOperationReceipt({ hash });
         const tx = String(receipt.receipt.transactionHash);
-        log(receipt.success ? "Paid ✓" : "The transaction was included but failed.");
-        if (/^0x[0-9a-fA-F]{64}$/.test(tx)) log(`<a href="https://testnet.snowtrace.io/tx/${tx}" target="_blank" rel="noopener">View transaction ${tx.slice(0, 10)}… on Snowtrace ↗</a>`, true);
+        if (receipt.success) log(`Paid ✓ ${usd(amount)} was sent to ${short(getAddress(payee))}.`, "ok");
+        else log("The payment did not go through. No money was sent.", "err");
+        if (/^0x[0-9a-fA-F]{64}$/.test(tx)) log(`<a href="https://testnet.snowtrace.io/tx/${tx}" target="_blank" rel="noopener">View receipt ↗</a>`, "", true);
         await refresh();
       } catch (e) {
-        log("Payment failed: " + (e.shortMessage || e.message));
+        log(friendly(e), "err");
       } finally { $("pay").disabled = false; }
     };
 
     const saved = loadCredential();
-    if (saved) { log("Found a saved passkey on this browser."); setup(saved).catch((e) => log("Setup failed: " + e.message)); }
+    if (saved) { log("Welcome back. Your wallet is ready."); setup(saved).catch(() => log("Could not load your wallet. Reload the page and try again.", "err")); }
   </script>
 </body>
 </html>
