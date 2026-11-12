@@ -51,16 +51,20 @@ async function verifyInvoiceTx(invoice, txHash) {
   return log ? paymentFromLog({ ...log, transactionHash: txHash, blockNumber: log.blockNumber || r.blockNumber }) : null;
 }
 
-// Searches recent blocks for the payment when no transaction hash is known.
-async function findInvoicePayment(invoice, { chunk = 2048, maxChunks = 40 } = {}) {
+// Searches for the payment when no transaction hash is known. Starts from the newest blocks
+// (recent payments are found in the first request) and stops at the invoice's creation block,
+// after `maxChunks` requests, or when the time budget runs out (then the caller can retry).
+async function findInvoicePayment(invoice, { chunk = 2048, maxChunks = 40, budgetMs = 7000 } = {}) {
+  const started = Date.now();
   const latest = await blockNumber();
-  let from = Number.isInteger(invoice.createdBlock) ? invoice.createdBlock : Math.max(0, latest - chunk * maxChunks);
-  for (let i = 0; i < maxChunks && from <= latest; i++) {
-    const to = Math.min(latest, from + chunk - 1);
+  const floor = Number.isInteger(invoice.createdBlock) ? invoice.createdBlock : 0;
+  let to = latest;
+  for (let i = 0; i < maxChunks && to >= floor && Date.now() - started < budgetMs; i++) {
+    const from = Math.max(floor, to - chunk + 1);
     const logs = await rpc("eth_getLogs", [{ address: CONTRACT, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16), topics: [TOPIC_INVOICE_PAID, invoiceKey(invoice.id)] }]);
     const log = matchInvoicePaid(logs, invoice);
     if (log) return paymentFromLog(log);
-    from = to + 1;
+    to = from - 1;
   }
   return null;
 }

@@ -301,11 +301,13 @@
       renderInvoices();
       // Invoices paid on-chain but not yet recorded: ask the server to verify and record them.
       await Promise.all(invoices.filter((i) => !i.paid).map(async (inv) => {
+        // The blockchain is the source of truth: if the contract says paid, show Paid even if the receipt isn't saved yet.
+        try { if (!(await isPaid(v, client, inv))) return; } catch (e) { console.warn(e); return; }
+        inv.paidPending = true;
         try {
-          if (!(await isPaid(v, client, inv))) return;
           const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify({ id: inv.id }) });
-          Object.assign(inv, r.invoice); if (!inv.paid) inv.paidPending = true;
-        } catch (e) { console.warn(e); }
+          if (r.invoice && r.invoice.paid) { Object.assign(inv, r.invoice); inv.paidPending = false; }
+        } catch (e) { console.warn("receipt not saved yet", e); }
       }));
       renderInvoices();
     }
@@ -318,7 +320,7 @@
         const main = document.createElement("div");
         const t = document.createElement("p"); t.className = "invoice-row__title"; t.textContent = inv.clientName || inv.description;
         const s = document.createElement("p"); s.className = "muted small";
-        s.textContent = (inv.clientName ? inv.description + " · " : "") + (inv.paid ? `Paid ${formatDate(inv.paid.paidAt)}` : `Created ${formatDate(inv.createdAt)}`);
+        s.textContent = (inv.clientName ? inv.description + " · " : "") + (inv.paid ? `Paid ${formatDate(inv.paid.paidAt)}` : inv.paidPending ? "Paid · receipt is being saved" : `Created ${formatDate(inv.createdAt)}`);
         main.append(t, s);
         const side = document.createElement("div"); side.className = "invoice-row__side";
         const amt = document.createElement("p"); amt.className = "invoice-row__amount"; amt.textContent = usd(inv.amountUnits);
@@ -329,7 +331,7 @@
         if (inv.paid) {
           const a = document.createElement("a"); a.className = "link small"; a.href = `${EXPLORER}/tx/${inv.paid.txHash}`; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Receipt ↗";
           side.append(a);
-        } else {
+        } else if (!inv.paidPending) {
           const copy = document.createElement("button"); copy.className = "link small"; copy.type = "button"; copy.textContent = "Copy link";
           copy.onclick = async () => { try { await navigator.clipboard.writeText(payLink(inv.id)); copy.textContent = "Copied"; } catch { prompt("Invoice link", payLink(inv.id)); } setTimeout(() => (copy.textContent = "Copy link"), 1600); };
           side.append(copy);
