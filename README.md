@@ -41,7 +41,7 @@ Freelancer (passkey)            Client (any wallet)
 | Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
 | Passkey smart account + gas sponsorship | ✅ working on Fuji: [first passkey payment](https://testnet.snowtrace.io/tx/0xa19ccabe4e9ed9ff1330d7ded4a33edeada2de23575a6389beb435ac8780f167) (test page at `/spike`) |
 | Landing page ([`web/`](web/)) | ✅ static, zero dependencies |
-| Invoice app (`/app`, `/pay/<id>`) | ✅ beta on Fuji |
+| Invoice app (`/app`, `/pay/<id>`) | ✅ working on Fuji: [first invoice paid from MetaMask](https://testnet.snowtrace.io/tx/0xa173b7230043ea79e3a40e5be7608ccd5231ca5584c3eb38ebfcfb0a1a6bf8e5) |
 
 ## Deployments
 
