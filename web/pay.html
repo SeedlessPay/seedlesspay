@@ -60,6 +60,10 @@
         <div id="pay-area">
           <button class="btn btn--block" id="pay" type="button">Pay</button>
           <p class="form__msg center" id="pay-msg" role="status" aria-live="polite"></p>
+          <div class="wallets" id="wallets" hidden>
+            <p class="small muted">Choose the wallet you want to pay with:</p>
+            <div class="wallets__list" id="wallet-list"></div>
+          </div>
           <div class="no-wallet" id="no-wallet" hidden>
             <p class="small">To pay, open this page in a crypto wallet app such as MetaMask or Core, or in a browser with a wallet extension.</p>
             <a class="btn btn--ghost btn--block" id="open-metamask" href="#">Open in MetaMask</a>
@@ -88,7 +92,29 @@
     const parts = location.pathname.split("/").filter(Boolean);
     const id = new URLSearchParams(location.search).get("i") || (parts[0] === "pay" ? parts[1] : "");
 
-    let invoice, v, client;
+    let invoice, v, client, chosen;
+
+    // EIP-6963: find every wallet extension in the browser, not only window.ethereum.
+    const providers = [];
+    window.addEventListener("eip6963:announceProvider", (e) => {
+      const d = e.detail;
+      if (d && d.info && d.provider && !providers.some((p) => p.info.uuid === d.info.uuid)) providers.push(d);
+    });
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    function chooseWallet() {
+      const list = $("wallet-list");
+      list.textContent = "";
+      for (const p of providers) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "wallet-opt";
+        if (/^data:image\//.test(p.info.icon || "")) { const img = document.createElement("img"); img.src = p.info.icon; img.alt = ""; img.width = 28; img.height = 28; b.append(img); }
+        const name = document.createElement("span"); name.textContent = p.info.name; b.append(name);
+        b.onclick = () => { chosen = p.provider; $("wallets").hidden = true; $("pay").hidden = false; pay(); };
+        list.append(b);
+      }
+      $("pay").hidden = true; $("wallets").hidden = false;
+    }
 
     function showPaid(txHash) {
       $("status").textContent = "Paid"; $("status").className = "pill pill--paid";
@@ -129,12 +155,16 @@
 
     async function pay() {
       const btn = $("pay");
-      if (!window.ethereum) { $("no-wallet").hidden = false; btn.hidden = true; return; }
+      if (!chosen) {
+        if (providers.length > 1) return chooseWallet();
+        chosen = providers.length === 1 ? providers[0].provider : window.ethereum;
+      }
+      if (!chosen) { $("no-wallet").hidden = false; btn.hidden = true; return; }
       btn.disabled = true;
       try {
         v = v || await loadViem();
         client = client || v.createPublicClient({ chain: v.chain, transport: v.http() });
-        const wallet = v.createWalletClient({ chain: v.chain, transport: v.custom(window.ethereum) });
+        const wallet = v.createWalletClient({ chain: v.chain, transport: v.custom(chosen) });
         say("Connect your wallet to continue.");
         const [from] = await wallet.requestAddresses();
         say("Switching your wallet to Avalanche…");
@@ -145,6 +175,9 @@
         const key = invoiceKey(v, invoice.id);
 
         if (await isPaid(v, client, invoice)) return showPaid();
+
+        const gas = await client.getBalance({ address: from });
+        if (gas === 0n) return say("Your wallet has no AVAX to pay the small network fee. Add a little AVAX on the Avalanche test network and try again.", "error");
 
         const balance = await client.readContract({ address: USDC, abi: v.erc20Abi, functionName: "balanceOf", args: [from] });
         if (balance < units) return say(`This wallet has ${usd(balance)} USDC. You need ${usd(units)} to pay this invoice.`, "error");
