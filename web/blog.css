@@ -28,3 +28,12 @@
 .legal .blog-list { list-style: none; padding-left: 0; }
 .legal .blog-card { margin-top: 0; }
 .legal .blog-card h2 { max-width: none; }
+.post__hero { display: block; width: 100%; height: auto; margin-top: 28px; border-radius: 20px; border: 1px solid var(--line-2); }
+.blog-card a { padding: 0 0 24px; overflow: hidden; }
+.blog-card__img { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+.legal .blog-card h2, .legal .blog-card p, .blog-card__meta { margin-left: 26px; margin-right: 26px; }
+@media (min-width: 760px) {
+  .legal .blog-list { grid-template-columns: 1fr 1fr; gap: 18px; }
+  .blog .wrap { max-width: 1000px; }
+  .legal .blog-card h2 { font-size: 19px; }
+}
