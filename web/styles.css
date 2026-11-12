@@ -89,7 +89,7 @@ ol, ul { padding: 0; list-style: none; }
   border-bottom: 1px solid var(--line);
 }
 .nav__inner { display: flex; align-items: center; gap: 32px; height: 68px; }
-.brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600; letter-spacing: -0.03em; font-size: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: -0.03em; font-size: 18px; }
 .brand img { border-radius: 0; }
 .nav__links { display: flex; gap: 28px; margin-left: auto; font-size: 15px; color: var(--muted); }
 .nav__links a:hover, .footer__links a:hover { color: var(--paper); }
@@ -287,3 +287,8 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 .icon svg { position: relative; width: 24px; height: 24px; }
 .features .icon { width: 44px; height: 44px; border-radius: 13px; margin-bottom: 20px; }
 .features .icon svg { width: 22px; height: 22px; }
+
+/* Logo: richer contrast on the light background */
+[data-theme="light"] .brand img, [data-theme="light"] .closing__logo {
+  filter: saturate(1.2) brightness(0.86) contrast(1.08);
+}
