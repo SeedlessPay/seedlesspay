@@ -133,7 +133,7 @@ h1 em, h2 em {
   -webkit-text-fill-color: transparent; color: var(--accent);
 }
 
-.lede { margin-top: 22px; max-width: 460px; font-size: 19px; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
+.lede { margin-top: 22px; max-width: 500px; font-size: 19px; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
 .fine { margin-top: 20px; font-size: 14px; color: var(--faint); }
 .fine a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
@@ -241,3 +241,17 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 @media (max-width: 900px) { .tilt, .tilt:hover { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tilt, .tilt:hover { transform: none; transition: none; } }
 @media (max-width: 600px) { h1 { text-wrap: balance; } }
+
+/* FAQ */
+.faq { margin-top: 40px; border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 22px 0; cursor: pointer; list-style: none;
+  font-family: var(--display); font-size: 18px; font-weight: 500; letter-spacing: -0.02em;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--sans); font-size: 22px; color: var(--muted); transition: transform 0.2s ease; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { padding: 0 0 22px; color: var(--muted); max-width: 620px; }
+@media (prefers-reduced-motion: reduce) { .faq summary::after { transition: none; } }
