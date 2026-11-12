@@ -184,12 +184,22 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 .closing .btn { margin-top: 32px; }
 
 /* Footer */
-.footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
-.footer__inner { display: flex; flex-wrap: wrap; align-items: center; gap: 24px 32px; }
+.footer { border-top: 1px solid var(--line); padding: 40px 0 36px; }
+.footer__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
 .footer .brand { font-size: 16px; }
-
-.footer__links { display: flex; flex-wrap: wrap; gap: 24px; font-size: 15px; color: var(--muted); }
-.footer .fine { margin: 0 0 0 auto; }
+.footer__links { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--muted); }
+.footer__links > a:first-child { margin-right: 12px; }
+.icon-link {
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 999px;
+  color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.icon-link:hover { color: var(--paper); background: var(--ink-3); }
+.icon-link svg { width: 16px; height: 16px; }
+.footer__bottom {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px;
+  margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line);
+  font-size: 14px; color: var(--faint);
+}
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -199,7 +209,6 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
   .section { padding: 80px 0; }
   .nav__links { display: none; }
   .nav__inner .theme { margin-left: auto; }
-  .footer .fine { margin-left: 0; width: 100%; }
 }
 
 @media (max-width: 480px) {
