@@ -97,6 +97,10 @@ USDC addresses used by the deploy script:
 
 The landing page in [`web/`](web/) is plain HTML and CSS with no build step. To host it on Vercel, import this repo and set **Root Directory** to `web` (Framework preset: Other).
 
+### Waitlist
+
+The early-access form posts to [`web/api/waitlist.js`](web/api/waitlist.js), a Vercel Function with no dependencies that stores emails in Upstash Redis (`waitlist:emails` set, `waitlist:joined` hash). Connect a database from **Vercel → Storage → Upstash for Redis**; the function reads `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` or `KV_REST_API_URL`/`KV_REST_API_TOKEN`. Signups are rate limited per hashed IP, and a honeypot field filters bots.
+
 ## Builder
 
 Built by [Sithu Nyein](https://sithunyein.com), a freelancer who has had this problem for years.

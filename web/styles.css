@@ -79,6 +79,7 @@ body {
 }
 
 img { display: block; max-width: 100%; }
+button, input { font: inherit; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p, ol, ul, dl, dd, figure { margin: 0; }
 ol, ul { padding: 0; list-style: none; }
@@ -173,7 +174,6 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 
 
 .closing { padding: 128px 0; }
-.closing .btn { margin-top: 32px; }
 
 /* Footer */
 .footer { border-top: 1px solid var(--line); padding: 40px 0 36px; }
@@ -421,3 +421,25 @@ h3 { font-family: var(--display); font-size: 17px; font-weight: 500; letter-spac
 .legal li { margin-top: 8px; }
 .legal a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .legal strong { color: var(--paper); font-weight: 500; }
+
+/* Waitlist form */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.join { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; max-width: 480px; }
+.join__input {
+  flex: 1 1 220px; min-width: 0; height: 48px; padding: 0 20px; border-radius: 999px;
+  border: 1px solid var(--line-2); background: var(--ink-2); color: var(--paper);
+  font: 400 16px var(--sans);
+}
+.join__input::placeholder { color: var(--faint); }
+.join__input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.join .btn { border: 0; cursor: pointer; }
+.join .btn:disabled { opacity: 0.7; cursor: progress; }
+.join__msg { flex-basis: 100%; min-height: 1.4em; margin: 2px 0 0 4px; font-size: 14px; }
+.join__msg--ok { color: var(--accent); }
+.join__msg--error { color: #c2410c; }
+[data-theme="dark"] .join__msg--error { color: #fb923c; }
+.hero .fine a { color: var(--muted); }
+.closing .join { margin: 32px auto 0; justify-content: center; }
+.closing .join__msg { text-align: center; margin-left: 0; }
+@media (max-width: 480px) { .join .btn { width: 100%; justify-content: center; } }
