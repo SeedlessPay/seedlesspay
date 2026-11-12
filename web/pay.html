@@ -102,13 +102,24 @@
     });
     window.dispatchEvent(new Event("eip6963:requestProvider"));
 
+    // The wallet's own logo (EIP-6963 icon), or a letter badge if it has none or it fails to load.
+    function walletIcon(info) {
+      const letter = () => { const s = document.createElement("span"); s.className = "wallet-opt__letter"; s.textContent = (info.name || "?").trim().charAt(0).toUpperCase(); return s; };
+      const icon = String(info.icon || "").trim();
+      if (!/^data:image\//i.test(icon) && !/^https:\/\//i.test(icon)) return letter();
+      const img = document.createElement("img");
+      img.src = icon; img.alt = ""; img.width = 28; img.height = 28; img.referrerPolicy = "no-referrer";
+      img.onerror = () => img.replaceWith(letter());
+      return img;
+    }
+
     function chooseWallet() {
       const list = $("wallet-list");
       list.textContent = "";
       for (const p of providers) {
         const b = document.createElement("button");
         b.type = "button"; b.className = "wallet-opt";
-        if (/^data:image\//.test(p.info.icon || "")) { const img = document.createElement("img"); img.src = p.info.icon; img.alt = ""; img.width = 28; img.height = 28; b.append(img); }
+        b.append(walletIcon(p.info));
         const name = document.createElement("span"); name.textContent = p.info.name; b.append(name);
         b.onclick = () => { chosen = p.provider; $("wallets").hidden = true; $("pay").hidden = false; pay(); };
         list.append(b);
