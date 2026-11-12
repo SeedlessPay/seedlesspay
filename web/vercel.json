@@ -48,7 +48,7 @@
   "rewrites": [
     {
       "source": "/pay/:id",
-      "destination": "/pay.html"
+      "destination": "/pay"
     }
   ]
 }
