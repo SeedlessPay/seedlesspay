@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/assets/logo-512.png" alt="SeedlessPay logo" width="128">
+  <img src="web/assets/logo-mark-256.png" alt="SeedlessPay logo" width="120">
 </p>
 
 <h1 align="center">SeedlessPay</h1>
