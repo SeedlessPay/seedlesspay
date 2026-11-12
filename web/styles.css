@@ -9,6 +9,8 @@
   --faint: #7a8c86;
   --accent: #5ce0a6;
   --accent-dim: rgba(92, 224, 166, 0.12);
+  --logo-from: #2fa673;
+  --logo-to: #6ee8b2;
   --btn-bg: #5ce0a6;
   --btn-fg: #062a1b;
   --btn-hover: #7aebb9;
@@ -34,6 +36,8 @@
   --faint: #5f6e68;
   --accent: #1a7a50;
   --accent-dim: rgba(26, 122, 80, 0.10);
+  --logo-from: #0f3d2e;
+  --logo-to: #1f8a5b;
   --btn-bg: #0f3d2e;
   --btn-fg: #f7f5f0;
   --btn-hover: #17573f;
@@ -122,7 +126,12 @@ h1 {
   margin-top: 24px;
   font-family: var(--serif); font-weight: 400; font-size: clamp(48px, 6.4vw, 76px); line-height: 1.02; letter-spacing: -0.02em; text-wrap: balance;
 }
-h1 em, h2 em { font-style: italic; color: var(--accent); }
+h1 em, h2 em {
+  font-style: normal;
+  background: linear-gradient(120deg, var(--logo-from), var(--logo-to));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: var(--accent);
+}
 
 .lede { margin-top: 22px; max-width: 460px; font-size: 19px; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
