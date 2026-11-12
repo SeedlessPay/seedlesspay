@@ -41,13 +41,14 @@ Freelancer (passkey)            Client (any wallet)
 | Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
 | Passkey smart account + gas sponsorship | ✅ working on Fuji: [first passkey payment](https://testnet.snowtrace.io/tx/0xa19ccabe4e9ed9ff1330d7ded4a33edeada2de23575a6389beb435ac8780f167) (test page at `/spike`) |
 | Landing page ([`web/`](web/)) | ✅ static, zero dependencies |
+| `SeedlessEscrow.sol` milestone escrow + 37 tests | ✅ deployed and verified on Fuji |
 | Invoice app (`/app`, `/pay/<id>`) | ✅ working on Fuji: [first invoice paid from MetaMask](https://testnet.snowtrace.io/tx/0xa173b7230043ea79e3a40e5be7608ccd5231ca5584c3eb38ebfcfb0a1a6bf8e5) |
 
 ## Deployments
 
-| Network | SeedlessPay |
-|---|---|
-| Fuji testnet (43113) | [`0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
+| Network | SeedlessPay | SeedlessEscrow |
+|---|---|---|
+| Fuji testnet (43113) | [`0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) | [`0x62342f78ca904Aea8690f0F576426DD6E1b5936E`](https://testnet.snowtrace.io/address/0x62342f78ca904Aea8690f0F576426DD6E1b5936E) |
 
 ## Contract
 
@@ -92,6 +93,18 @@ USDC addresses used by the deploy script:
 |---|---|---|
 | Fuji testnet | 43113 | `0x5425890298aed601595a70AB815c96711a31Bc65` |
 | Avalanche C-Chain | 43114 | `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E` |
+
+## Escrow contract
+
+[`contracts/src/SeedlessEscrow.sol`](contracts/src/SeedlessEscrow.sol) holds an invoice's full amount and releases it milestone by milestone (1 to 5 milestones).
+
+- The freelancer marks a milestone delivered. The client has **7 days** to approve or raise an issue; if the client does neither, the freelancer can claim it.
+- If a milestone is not delivered by its due date (counted from funding), the client can take it back.
+- If an issue is still open **30 days** after it was first raised, the client can take it back. Redelivering does not restart that clock.
+- Either side can propose a split; it executes only when the other side accepts the same numbers. The freelancer can return a milestone at any time.
+- No owner, no admin key, no fees. Escrows are keyed by the hash of their full terms, so nobody can block one by funding the same id with different terms.
+
+The server records only that an escrow was funded, after checking the `EscrowFunded` log and the stored milestone plan on-chain. Milestone states are always read live from the contract.
 
 ## Website
 

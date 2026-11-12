@@ -54,14 +54,27 @@
         <section class="panel">
           <h2>New invoice</h2>
           <form id="invoice-form" class="form" novalidate>
-            <label class="field"><span>Amount (USD)</span>
+            <div class="seg" role="radiogroup" aria-label="How the client pays">
+              <label><input type="radio" name="mode" value="once" checked> <span>Pay at once</span></label>
+              <label><input type="radio" name="mode" value="escrow"> <span>Milestones with escrow</span></label>
+            </div>
+            <p class="muted small" id="mode-help">The client pays the full amount straight to your wallet.</p>
+            <label class="field" id="amount-field"><span>Amount (USD)</span>
               <input name="amount" inputmode="decimal" placeholder="250.00" autocomplete="off" required></label>
+            <div id="ms-editor" hidden>
+              <div class="ms-edit__head small muted"><span>Milestone</span><span>Amount (USD)</span><span>Due (days after payment)</span><span></span></div>
+              <div id="ms-rows"></div>
+              <div class="ms-edit__foot">
+                <button class="link small" id="ms-add" type="button">+ Add milestone</button>
+                <span class="small">Total <strong id="ms-total">$0.00</strong></span>
+              </div>
+            </div>
             <label class="field"><span>What is this invoice for?</span>
               <input name="description" maxlength="280" placeholder="Logo design for Acme" required></label>
             <div class="form__row">
               <label class="field"><span>Client name <em>(optional)</em></span>
                 <input name="clientName" maxlength="80" placeholder="Acme Inc."></label>
-              <label class="field"><span>Due date <em>(optional)</em></span>
+              <label class="field" id="due-field"><span>Due date <em>(optional)</em></span>
                 <input name="dueDate" type="date"></label>
             </div>
             <label class="field"><span>Your name on the invoice <em>(optional)</em></span>
@@ -71,7 +84,7 @@
           </form>
           <div class="share" id="share" hidden>
             <p class="share__title">Your invoice is ready</p>
-            <p class="muted small">Send this link to your client. They can pay it from any wallet that holds USDC on Avalanche.</p>
+            <p class="muted small" id="share-help">Send this link to your client. They can pay it from any wallet that holds USDC on Avalanche.</p>
             <div class="share__link">
               <input id="share-url" readonly aria-label="Invoice link">
               <button class="btn btn--small" id="copy-link" type="button">Copy</button>
@@ -145,7 +158,8 @@
   </main>
 
   <script type="module">
-    import { loadViem, USDC, EXPLORER, isPaid, usd, short, formatDate, api, payLink, signInWithPasskey, rpIdForHost, toCsv, download, units } from "/js/sp.js";
+    import { loadViem, USDC, EXPLORER, isPaid, usd, short, formatDate, api, payLink, signInWithPasskey, rpIdForHost, toCsv, download, units,
+      ESCROW, ESCROW_ABI, readEscrow, escrowSummary, renderMilestones } from "/js/sp.js";
 
     const STORE = "seedlesspay.wallet";
     const OLD_STORE = "seedlesspay.spike.credential";
@@ -272,15 +286,23 @@
     $("invoice-form").onsubmit = async (e) => {
       e.preventDefault();
       const f = e.target, msg = $("form-msg"), btn = f.querySelector("button[type=submit]");
+      const isEscrow = f.mode.value === "escrow";
       const amount = f.amount.value.trim().replace(/[$,\s]/g, "");
-      if (!/^\d{1,7}(\.\d{1,6})?$/.test(amount) || Number(amount) < 0.01) return say(msg, "Please enter an amount, for example 250 or 99.50.", "error");
+      let milestones = null;
+      if (isEscrow) {
+        milestones = readMilestones();
+        if (typeof milestones === "string") return say(msg, milestones, "error");
+      } else if (!/^\d{1,7}(\.\d{1,6})?$/.test(amount) || Number(amount) < 0.01) return say(msg, "Please enter an amount, for example 250 or 99.50.", "error");
       if (!f.description.value.trim()) return say(msg, "Please say what this invoice is for.", "error");
       btn.disabled = true; btn.textContent = "Creating…"; say(msg, "");
       try {
-        const { invoice } = await api("/api/invoices", { method: "POST", body: JSON.stringify({
-          amount, description: f.description.value, clientName: f.clientName.value, fromName: f.fromName.value, dueDate: f.dueDate.value,
-        }) });
-        f.reset();
+        const common = { description: f.description.value, clientName: f.clientName.value, fromName: f.fromName.value };
+        const { invoice } = await api("/api/invoices", { method: "POST", body: JSON.stringify(isEscrow
+          ? { ...common, milestones } : { ...common, amount, dueDate: f.dueDate.value }) });
+        f.reset(); setMode("once"); resetMilestones();
+        $("share-help").textContent = invoice.escrow
+          ? "Send this link to your client. They pay the full amount into escrow, and you can see it is locked before you start work."
+          : "Send this link to your client. They can pay it from any wallet that holds USDC on Avalanche.";
         $("share-url").value = payLink(invoice.id);
         $("share").hidden = false; $("native-share").hidden = !navigator.share;
         $("share").scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -288,6 +310,55 @@
       } catch (err) { if (!onAuthError(err)) say(msg, friendly(err), "error"); }
       finally { btn.disabled = false; btn.textContent = "Create invoice"; }
     };
+
+    // ---------- Milestone editor
+    function setMode(mode) {
+      const f = $("invoice-form"), escrow = mode === "escrow";
+      f.mode.value = mode;
+      $("amount-field").hidden = escrow; $("ms-editor").hidden = !escrow; $("due-field").hidden = escrow;
+      $("mode-help").textContent = escrow
+        ? "The client pays the full amount into escrow first. Each milestone is paid to you when the client approves it, or automatically 7 days after you deliver if they say nothing."
+        : "The client pays the full amount straight to your wallet.";
+      if (escrow && !$("ms-rows").children.length) { addMilestone(); addMilestone(); }
+    }
+    for (const r of $("invoice-form").querySelectorAll("input[name=mode]")) r.onchange = () => setMode(r.value);
+
+    function addMilestone() {
+      const rows = $("ms-rows");
+      if (rows.children.length >= 5) return;
+      const row = document.createElement("div"); row.className = "ms-edit";
+      row.innerHTML = '<input class="ms-title" maxlength="80" aria-label="Milestone name">'
+        + '<input class="ms-amount" inputmode="decimal" placeholder="100.00" aria-label="Milestone amount">'
+        + '<input class="ms-days" inputmode="numeric" placeholder="14" aria-label="Due, days after payment">'
+        + '<button class="ms-remove" type="button" aria-label="Remove milestone">×</button>';
+      row.querySelector(".ms-title").placeholder = ["Design", "Build", "Launch", "Revisions", "Handover"][rows.children.length];
+      row.querySelector(".ms-remove").onclick = () => { if (rows.children.length > 1) { row.remove(); msChanged(); } };
+      row.addEventListener("input", msChanged);
+      rows.append(row); msChanged();
+    }
+    function resetMilestones() { $("ms-rows").textContent = ""; msChanged(); }
+    $("ms-add").onclick = addMilestone;
+
+    const toUnits = (s) => { const m = /^(\d{1,7})(?:\.(\d{1,6}))?$/.exec(String(s).trim().replace(/[$,\s]/g, "")); return m ? BigInt(m[1]) * 1000000n + BigInt((m[2] || "").padEnd(6, "0") || "0") : null; };
+    function msChanged() {
+      let total = 0n;
+      for (const r of $("ms-rows").children) total += toUnits(r.querySelector(".ms-amount").value) || 0n;
+      $("ms-total").textContent = usd(total);
+      $("ms-add").hidden = $("ms-rows").children.length >= 5;
+    }
+    // Returns the milestone list, or an error message.
+    function readMilestones() {
+      const out = [];
+      [...$("ms-rows").children].forEach((r) => out.push({ title: r.querySelector(".ms-title").value.trim(), amount: r.querySelector(".ms-amount").value.trim().replace(/[$,\s]/g, ""), dueDays: r.querySelector(".ms-days").value.trim() }));
+      for (const [i, m] of out.entries()) {
+        if (!m.title) return `Please name milestone ${i + 1}.`;
+        const u = toUnits(m.amount);
+        if (u === null || u < 10000n) return `Please enter an amount for milestone ${i + 1}, for example 250.`;
+        if (!/^\d{1,3}$/.test(m.dueDays) || +m.dueDays < 1 || +m.dueDays > 730) return `Milestone ${i + 1}: enter how many days after payment it is due (1 to 730).`;
+        m.dueDays = +m.dueDays;
+      }
+      return out;
+    }
 
     $("copy-link").onclick = async () => {
       const b = $("copy-link");
@@ -299,19 +370,48 @@
     async function loadInvoices() {
       try { ({ invoices } = await api("/api/me?r=invoices")); } catch (e) { if (onAuthError(e)) return; console.error(e); }
       renderInvoices();
-      // Invoices paid on-chain but not yet recorded: ask the server to verify and record them.
-      await Promise.all(invoices.filter((i) => !i.paid).map(async (inv) => {
-        // The blockchain is the source of truth: if the contract says paid, show Paid even if the receipt isn't saved yet.
-        try { if (!(await isPaid(v, client, inv))) return; } catch (e) { console.warn(e); return; }
-        inv.paidPending = true;
-        try {
-          const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify({ id: inv.id }) });
-          if (r.invoice && r.invoice.paid) { Object.assign(inv, r.invoice); inv.paidPending = false; }
-        } catch (e) { console.warn("receipt not saved yet", e); }
-      }));
+      await Promise.all(invoices.map((inv) => (inv.escrow ? syncEscrow(inv) : syncPaid(inv))));
       renderInvoices();
     }
 
+    // Invoices paid on-chain but not yet recorded: ask the server to verify and record them.
+    async function syncPaid(inv) {
+      if (inv.paid) return;
+      // The blockchain is the source of truth: if the contract says paid, show Paid even if the receipt isn't saved yet.
+      try { if (!(await isPaid(v, client, inv))) return; } catch (e) { console.warn(e); return; }
+      inv.paidPending = true;
+      try {
+        const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify({ id: inv.id }) });
+        if (r.invoice && r.invoice.paid) { Object.assign(inv, r.invoice); inv.paidPending = false; }
+      } catch (e) { console.warn("receipt not saved yet", e); }
+    }
+
+    // Escrow invoices: milestone states are read live from the contract.
+    async function syncEscrow(inv) {
+      try { inv.chain = await readEscrow(v, client, inv); } catch (e) { console.warn(e); inv.chainError = true; return; }
+      if (inv.chain && !inv.funded) {
+        try { const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify({ id: inv.id }) }); if (r.invoice) inv.funded = r.invoice.funded; }
+        catch (e) { console.warn("funding not saved yet", e); }
+      }
+    }
+
+    // Freelancer actions on a milestone, signed with the passkey (network fee covered).
+    async function escrowAct(inv, name, index, arg) {
+      const args = arg == null ? [inv.chain.key, BigInt(index)] : [inv.chain.key, BigInt(index), arg];
+      try {
+        const hash = await bundler.sendUserOperation({ calls: [{ to: ESCROW, data: v.encodeFunctionData({ abi: ESCROW_ABI, functionName: name, args }) }] });
+        const r = await bundler.waitForUserOperationReceipt({ hash });
+        if (!r.success) throw new Error("reverted");
+      } catch (e) {
+        if (onAuthError(e)) return;
+        throw Object.assign(new Error("failed"), { userMessage: friendly(e).replace("Something went wrong.", "That did not go through. Nothing changed.") });
+      }
+      await syncEscrow(inv);
+      renderInvoices();
+      refreshBalance().catch(console.error);
+    }
+
+    const openEscrows = new Set();
     function renderInvoices() {
       const ul = $("invoices"); ul.textContent = "";
       $("invoices-empty").hidden = invoices.length > 0;
@@ -320,22 +420,54 @@
         const main = document.createElement("div");
         const t = document.createElement("p"); t.className = "invoice-row__title"; t.textContent = inv.clientName || inv.description;
         const s = document.createElement("p"); s.className = "muted small";
-        s.textContent = (inv.clientName ? inv.description + " · " : "") + (inv.paid ? `Paid ${formatDate(inv.paid.paidAt)}` : inv.paidPending ? "Paid · receipt is being saved" : `Created ${formatDate(inv.createdAt)}`);
-        main.append(t, s);
         const side = document.createElement("div"); side.className = "invoice-row__side";
         const amt = document.createElement("p"); amt.className = "invoice-row__amount"; amt.textContent = usd(inv.amountUnits);
         const pill = document.createElement("span");
+        const copyBtn = () => {
+          const copy = document.createElement("button"); copy.className = "link small"; copy.type = "button"; copy.textContent = "Copy link";
+          copy.onclick = async () => { try { await navigator.clipboard.writeText(payLink(inv.id)); copy.textContent = "Copied"; } catch { prompt("Invoice link", payLink(inv.id)); } setTimeout(() => (copy.textContent = "Copy link"), 1600); };
+          return copy;
+        };
+
+        if (inv.escrow) {
+          const sum = escrowSummary(inv.chain);
+          const n = inv.escrow.milestones.length;
+          s.textContent = (inv.clientName ? inv.description + " · " : "") + `Escrow, ${n} milestone${n === 1 ? "" : "s"} · `
+            + (inv.chain ? `${usd(sum.released)} paid to you` : inv.chainError ? "status unavailable" : "waiting for the client to pay");
+          pill.className = `pill pill--${sum.tone}`; pill.textContent = sum.label;
+          side.append(amt, pill);
+          if (!inv.chain) side.append(copyBtn());
+          else {
+            const tg = document.createElement("button"); tg.className = "link small"; tg.type = "button";
+            tg.textContent = openEscrows.has(inv.id) ? "Hide" : "Manage";
+            tg.onclick = () => { openEscrows.has(inv.id) ? openEscrows.delete(inv.id) : openEscrows.add(inv.id); renderInvoices(); };
+            side.append(tg);
+          }
+          main.append(t, s); li.append(main, side);
+          if (inv.chain && openEscrows.has(inv.id)) {
+            li.classList.add("invoice-row--open");
+            const list = document.createElement("ol"); list.className = "milestones";
+            renderMilestones(list, inv, inv.chain, "freelancer", (name, i, arg) => escrowAct(inv, name, i, arg));
+            const foot = document.createElement("p"); foot.className = "fine";
+            foot.innerHTML = `Paid in by <span class="mono-sm"></span>. <a class="link" target="_blank" rel="noopener">Escrow contract ↗</a>`;
+            foot.querySelector("span").textContent = short(inv.chain.client);
+            foot.querySelector("a").href = `${EXPLORER}/address/${ESCROW}`;
+            const box = document.createElement("div"); box.className = "invoice-row__detail"; box.append(list, foot);
+            li.append(box);
+          }
+          ul.append(li);
+          continue;
+        }
+
+        s.textContent = (inv.clientName ? inv.description + " · " : "") + (inv.paid ? `Paid ${formatDate(inv.paid.paidAt)}` : inv.paidPending ? "Paid · receipt is being saved" : `Created ${formatDate(inv.createdAt)}`);
+        main.append(t, s);
         pill.className = "pill " + (inv.paid || inv.paidPending ? "pill--paid" : "pill--wait");
         pill.textContent = inv.paid || inv.paidPending ? "Paid" : "Unpaid";
         side.append(amt, pill);
         if (inv.paid) {
           const a = document.createElement("a"); a.className = "link small"; a.href = `${EXPLORER}/tx/${inv.paid.txHash}`; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Receipt ↗";
           side.append(a);
-        } else if (!inv.paidPending) {
-          const copy = document.createElement("button"); copy.className = "link small"; copy.type = "button"; copy.textContent = "Copy link";
-          copy.onclick = async () => { try { await navigator.clipboard.writeText(payLink(inv.id)); copy.textContent = "Copied"; } catch { prompt("Invoice link", payLink(inv.id)); } setTimeout(() => (copy.textContent = "Copy link"), 1600); };
-          side.append(copy);
-        }
+        } else if (!inv.paidPending) side.append(copyBtn());
         li.append(main, side); ul.append(li);
       }
     }
@@ -344,10 +476,18 @@
 
     $("export").onclick = () => {
       const rows = [["Date", "Type", "Status", "Description", "Client", "Amount (USDC)", "From", "To", "Transaction", "Invoice link"]];
-      for (const i of invoices) rows.push([
-        (i.paid && i.paid.paidAt) || i.createdAt, "Invoice", i.paid ? "Paid" : "Unpaid", i.description, i.clientName, units(i.amountUnits),
-        i.paid ? i.paid.payer : "", i.payee, i.paid ? i.paid.txHash : "", payLink(i.id),
-      ]);
+      for (const i of invoices) {
+        if (i.escrow) {
+          const sum = escrowSummary(i.chain);
+          rows.push([(i.funded && i.funded.fundedAt) || i.createdAt, "Escrow invoice", i.chain ? `${sum.label} (${units(sum.released)} paid to you)` : "Not funded",
+            i.description, i.clientName, units(i.amountUnits), i.chain ? i.chain.client : "", i.payee, i.funded ? i.funded.txHash : "", payLink(i.id)]);
+          continue;
+        }
+        rows.push([
+          (i.paid && i.paid.paidAt) || i.createdAt, "Invoice", i.paid ? "Paid" : "Unpaid", i.description, i.clientName, units(i.amountUnits),
+          i.paid ? i.paid.payer : "", i.payee, i.paid ? i.paid.txHash : "", payLink(i.id),
+        ]);
+      }
       for (const w of withdrawals) rows.push([w.sentAt, "Sent", "Completed", w.label ? `Sent to ${w.label}` : "Sent", "", units(w.amountUnits), account.address, w.to, w.txHash, ""]);
       download(`seedlesspay-records-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
     };

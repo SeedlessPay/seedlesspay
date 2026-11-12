@@ -53,9 +53,17 @@
           <div><dt>For</dt><dd id="description">—</dd></div>
           <div id="row-client" hidden><dt>Billed to</dt><dd id="client">—</dd></div>
           <div id="row-due" hidden><dt>Due</dt><dd id="due">—</dd></div>
-          <div><dt>Paid to wallet</dt><dd class="mono-sm" id="payee">—</dd></div>
+          <div><dt id="payee-label">Paid to wallet</dt><dd class="mono-sm" id="payee">—</dd></div>
           <div><dt>Network</dt><dd>Avalanche (test network)</dd></div>
         </dl>
+
+        <div class="escrow-box" id="escrow-box" hidden>
+          <p class="label">Paid in milestones</p>
+          <p class="small muted" id="escrow-intro">You pay the full amount into escrow now. The money is locked in a public contract, not with the freelancer and not with SeedlessPay. Each milestone is paid to the freelancer only when you approve it, or 7 days after it is delivered if you say nothing. If a milestone is not delivered on time, you can take that part back.</p>
+          <ol class="milestones" id="milestones"></ol>
+          <button class="btn btn--ghost btn--block" id="connect-manage" type="button" hidden>Connect the wallet you paid with</button>
+          <p class="form__msg center" id="manage-msg" role="status" aria-live="polite"></p>
+        </div>
 
         <div id="pay-area">
           <button class="btn btn--block" id="pay" type="button">Pay</button>
@@ -79,175 +87,10 @@
         <p class="note">SeedlessPay does not check who sent this invoice. Only pay if you know and trust the sender.</p>
       </article>
 
-      <p class="fine center">Payments go straight to the sender's wallet. SeedlessPay never holds your money. <a href="/terms">Terms</a></p>
+      <p class="fine center" id="footnote">Payments go straight to the sender's wallet. SeedlessPay never holds your money. <a href="/terms">Terms</a></p>
     </div>
   </main>
 
-  <script type="module">
-    import { loadViem, USDC, SEEDLESSPAY, PAY_ABI, EXPLORER, invoiceKey, isPaid, usd, short, formatDate, api } from "/js/sp.js";
-
-    const $ = (id) => document.getElementById(id);
-    const say = (text, kind) => { const el = $("pay-msg"); el.textContent = text; el.className = "form__msg center" + (kind ? ` form__msg--${kind}` : ""); };
-
-    const parts = location.pathname.split("/").filter(Boolean);
-    const id = new URLSearchParams(location.search).get("i") || (parts[0] === "pay" ? parts[1] : "");
-
-    let invoice, v, client, chosen;
-
-    // EIP-6963: find every wallet extension in the browser, not only window.ethereum.
-    const providers = [];
-    window.addEventListener("eip6963:announceProvider", (e) => {
-      const d = e.detail;
-      if (d && d.info && d.provider && !providers.some((p) => p.info.uuid === d.info.uuid)) providers.push(d);
-    });
-    window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-    // The wallet's own logo (EIP-6963 icon), or a letter badge if it has none or it fails to load.
-    function walletIcon(info) {
-      const letter = () => { const s = document.createElement("span"); s.className = "wallet-opt__letter"; s.textContent = (info.name || "?").trim().charAt(0).toUpperCase(); return s; };
-      const icon = String(info.icon || "").trim();
-      if (!/^data:image\//i.test(icon) && !/^https:\/\//i.test(icon)) return letter();
-      const img = document.createElement("img");
-      img.src = icon; img.alt = ""; img.width = 28; img.height = 28; img.referrerPolicy = "no-referrer";
-      img.onerror = () => img.replaceWith(letter());
-      return img;
-    }
-
-    function chooseWallet() {
-      const list = $("wallet-list");
-      list.textContent = "";
-      for (const p of providers) {
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "wallet-opt";
-        b.append(walletIcon(p.info));
-        const name = document.createElement("span"); name.textContent = p.info.name; b.append(name);
-        b.onclick = () => { chosen = p.provider; $("wallets").hidden = true; $("pay").hidden = false; pay(); };
-        list.append(b);
-      }
-      $("pay").hidden = true; $("wallets").hidden = false;
-    }
-
-    function showPaid(paid) {
-      $("status").textContent = "Paid"; $("status").className = "pill pill--paid";
-      $("pay-area").hidden = true; $("paid-box").hidden = false;
-      if (paid && paid.paidAt) $("paid-text").textContent = `Paid in full on ${formatDate(paid.paidAt)} from ${short(paid.payer)}.`;
-      if (paid && paid.txHash) { $("receipt").href = `${EXPLORER}/tx/${paid.txHash}`; $("receipt").hidden = false; }
-    }
-
-    // Asks the server to verify the payment on-chain and save the receipt.
-    async function record(txHash) {
-      try {
-        const r = await api("/api/invoices?action=confirm", { method: "POST", body: JSON.stringify(txHash ? { id: invoice.id, txHash } : { id: invoice.id }) });
-        if (r.invoice && r.invoice.paid) { invoice = r.invoice; showPaid(invoice.paid); }
-      } catch (e) { console.warn("could not record payment", e); }
-    }
-
-    function render() {
-      $("from").textContent = invoice.fromName || short(invoice.payee);
-      $("amount").textContent = usd(invoice.amountUnits);
-      $("description").textContent = invoice.description;
-      if (invoice.clientName) { $("client").textContent = invoice.clientName; $("row-client").hidden = false; }
-      if (invoice.dueDate) { $("due").textContent = formatDate(invoice.dueDate); $("row-due").hidden = false; }
-      $("payee").textContent = invoice.payee;
-      $("pay").textContent = `Pay ${usd(invoice.amountUnits)}`;
-      document.title = `Pay ${usd(invoice.amountUnits)} · SeedlessPay`;
-      $("loading").hidden = true; $("card").hidden = false;
-    }
-
-    function walletError(e) {
-      console.error(e);
-      const code = e && (e.code ?? (e.cause && e.cause.code));
-      const m = String((e && (e.shortMessage || e.message)) || "");
-      if (code === 4001 || /reject|denied|cancel/i.test(m)) return "You cancelled in your wallet. No money was sent.";
-      if (/insufficient funds|gas/i.test(m)) return "Your wallet needs a little AVAX to pay the network fee.";
-      if (/fetch|network|connect/i.test(m)) return "Could not connect. Check your internet and try again.";
-      return "The payment did not go through. No money was sent. Please try again.";
-    }
-
-    async function useFuji(wallet) {
-      try { await wallet.switchChain({ id: v.chain.id }); }
-      catch (e) {
-        const code = e && (e.code ?? (e.cause && e.cause.code));
-        if (code === 4902 || /4902|not been added|unrecognized chain/i.test(String(e.message))) await wallet.addChain({ chain: v.chain });
-        else throw e;
-      }
-    }
-
-    async function pay() {
-      const btn = $("pay");
-      if (!chosen) {
-        if (providers.length > 1) return chooseWallet();
-        chosen = providers.length === 1 ? providers[0].provider : window.ethereum;
-      }
-      if (!chosen) { $("no-wallet").hidden = false; btn.hidden = true; return; }
-      btn.disabled = true;
-      try {
-        v = v || await loadViem();
-        client = client || v.createPublicClient({ chain: v.chain, transport: v.http() });
-        const wallet = v.createWalletClient({ chain: v.chain, transport: v.custom(chosen) });
-        say("Connect your wallet to continue.");
-        const [from] = await wallet.requestAddresses();
-        say("Switching your wallet to Avalanche…");
-        await useFuji(wallet);
-
-        const units = BigInt(invoice.amountUnits);
-        const payee = v.getAddress(invoice.payee);
-        const key = invoiceKey(v, invoice.id);
-
-        if (await isPaid(v, client, invoice)) { showPaid(invoice.paid); return record(); }
-
-        const gas = await client.getBalance({ address: from });
-        if (gas === 0n) return say("Your wallet has no AVAX to pay the small network fee. Add a little AVAX on the Avalanche test network and try again.", "error");
-
-        const balance = await client.readContract({ address: USDC, abi: v.erc20Abi, functionName: "balanceOf", args: [from] });
-        if (balance < units) return say(`This wallet has ${usd(balance)} USDC. You need ${usd(units)} to pay this invoice.`, "error");
-
-        const allowance = await client.readContract({ address: USDC, abi: v.erc20Abi, functionName: "allowance", args: [from, SEEDLESSPAY] });
-        if (allowance < units) {
-          say("Step 1 of 2: allow SeedlessPay to send this amount of USDC. Confirm in your wallet.");
-          const h = await wallet.writeContract({ account: from, address: USDC, abi: v.erc20Abi, functionName: "approve", args: [SEEDLESSPAY, units] });
-          say("Step 1 of 2: waiting for confirmation…");
-          const r = await client.waitForTransactionReceipt({ hash: h });
-          if (r.status !== "success") return say("The approval did not go through. No money was sent.", "error");
-        }
-
-        say(allowance < units ? "Step 2 of 2: confirm the payment in your wallet." : "Confirm the payment in your wallet.");
-        const hash = await wallet.writeContract({ account: from, address: SEEDLESSPAY, abi: PAY_ABI, functionName: "payInvoice", args: [key, payee, units] });
-        say("Sending your payment…");
-        const receipt = await client.waitForTransactionReceipt({ hash });
-        if (receipt.status !== "success") return say("The payment did not go through. No money was sent.", "error");
-        say("");
-        showPaid({ txHash: hash });
-        record(hash);
-      } catch (e) {
-        say(walletError(e), "error");
-      } finally { btn.disabled = false; }
-    }
-
-    $("pay").onclick = pay;
-    $("open-metamask").href = `https://metamask.app.link/dapp/${location.host}${location.pathname}${location.search}`;
-
-    (async () => {
-      if (!/^[A-Za-z0-9_-]{12}$/.test(id || "")) { $("loading").hidden = true; $("missing").hidden = false; return; }
-      try {
-        ({ invoice } = await api(`/api/invoices?id=${encodeURIComponent(id)}`));
-      } catch (e) {
-        $("loading").hidden = true; $("missing").hidden = false;
-        if (!/find/i.test(e.message)) $("missing-text").textContent = e.message;
-        return;
-      }
-      render();
-      if (invoice.paid) return showPaid(invoice.paid);
-      try {
-        v = await loadViem();
-        client = v.createPublicClient({ chain: v.chain, transport: v.http() });
-        if (await isPaid(v, client, invoice)) { showPaid(); record(); }
-        else { $("status").textContent = "Unpaid"; }
-      } catch (e) {
-        console.error(e);
-        $("status").textContent = "Status unavailable";
-      }
-    })();
-  </script>
+<script type="module" src="/js/pay.js"></script>
 </body>
 </html>
