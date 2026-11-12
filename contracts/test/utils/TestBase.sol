@@ -5,6 +5,7 @@ pragma solidity 0.8.24;
 ///         zero external dependencies.
 interface Vm {
     function prank(address sender) external;
+    function warp(uint256 newTimestamp) external;
     function startPrank(address sender) external;
     function stopPrank() external;
     function expectRevert(bytes4 revertData) external;
