@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passkey wallet test · SeedlessPay</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f7f5f0">
+  <link rel="icon" href="/assets/favicon.ico?v=2" sizes="any">
+  <link rel="preload" href="/assets/fonts/Sora-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="/assets/fonts/Outfit-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .spike { padding: 56px 0 96px; }
+    .spike .wrap { max-width: 720px; }
+    .spike h1 { font-size: clamp(32px, 4.6vw, 46px); margin-top: 12px; }
+    .spike__intro { margin-top: 14px; color: var(--muted); }
+    .card { margin-top: 20px; padding: 24px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--ink-2); }
+    .card h2 { margin: 0; font-size: 19px; max-width: none; }
+    .card p { margin-top: 8px; color: var(--muted); font-size: 15px; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+    .row .btn { border: 0; cursor: pointer; height: 44px; }
+    .row .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .field { flex: 1 1 200px; min-width: 0; height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--ink); color: var(--paper); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; color: var(--paper); }
+    .kv { margin-top: 14px; display: grid; gap: 6px; }
+    .kv div { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+    .kv dt { color: var(--faint); }
+    .log { margin-top: 20px; padding: 16px; border-radius: 12px; background: var(--ink); border: 1px solid var(--line); font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: pre-wrap; word-break: break-all; min-height: 80px; }
+    .log a { color: var(--accent); }
+    .warn { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(242, 181, 68, 0.14); color: #7a5208; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav__inner">
+      <a class="brand" href="/" aria-label="SeedlessPay home">
+        <img src="/assets/logo-mark-256.png" alt="" width="36" height="36">
+        <span>seedlesspay</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="spike">
+    <div class="wrap">
+      <p class="eyebrow">Internal test · Avalanche Fuji</p>
+      <h1>Passkey wallet test</h1>
+      <p class="spike__intro">This page tests the core of SeedlessPay: a wallet created with Face ID or a fingerprint, with gas paid for you, paying an invoice through the SeedlessPay contract.</p>
+      <p class="warn">Test network only. Tokens here have no real value.</p>
+
+      <section class="card">
+        <h2>1. Create or use your passkey</h2>
+        <p>Your passkey stays on your device. Only its public key is saved in this browser.</p>
+        <div class="row">
+          <button class="btn" id="create">Create passkey</button>
+          <button class="btn btn--ghost" id="forget" hidden>Forget on this browser</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. Your wallet</h2>
+        <dl class="kv">
+          <div><dt>Address</dt><dd class="mono" id="addr">—</dd></div>
+          <div><dt>Deployed</dt><dd id="deployed">—</dd></div>
+          <div><dt>USDC balance</dt><dd id="bal">—</dd></div>
+        </dl>
+        <p>Send test USDC to this address from <a href="https://faucet.circle.com" rel="noopener">faucet.circle.com</a> (choose Avalanche Fuji).</p>
+        <div class="row"><button class="btn btn--ghost" id="refresh" disabled>Refresh balance</button></div>
+      </section>
+
+      <section class="card">
+        <h2>3. Pay an invoice with Face ID</h2>
+        <p>Approves USDC and calls <span class="mono">payInvoice</span> on the SeedlessPay contract in one gas-free transaction.</p>
+        <div class="row">
+          <input class="field" id="payee" placeholder="Payee address (0x…)" autocomplete="off">
+          <input class="field" id="amount" placeholder="Amount in USDC" value="0.10" inputmode="decimal" style="flex:0 1 140px">
+        </div>
+        <div class="row"><button class="btn" id="pay" disabled>Pay with passkey</button></div>
+      </section>
+
+      <div class="log" id="log" aria-live="polite">Ready.</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { createPublicClient, http, encodeFunctionData, parseUnits, formatUnits, keccak256, toHex, isAddress, getAddress, erc20Abi } from "https://esm.sh/viem@2";
+    import { avalancheFuji } from "https://esm.sh/viem@2/chains";
+    import { createWebAuthnCredential, toWebAuthnAccount, toCoinbaseSmartAccount, createBundlerClient } from "https://esm.sh/viem@2/account-abstraction";
+
+    const USDC = "0x5425890298aed601595a70AB815c96711a31Bc65";
+    const SEEDLESSPAY = "0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3";
+    const PAY_ABI = [{ type: "function", name: "payInvoice", stateMutability: "nonpayable",
+      inputs: [{ name: "invoiceId", type: "bytes32" }, { name: "payee", type: "address" }, { name: "amount", type: "uint256" }], outputs: [] }];
+    const STORE = "seedlesspay.spike.credential";
+    const host = location.hostname;
+    const rpId = host === "seedlesspay.com" || host.endsWith(".seedlesspay.com") ? "seedlesspay.com" : host;
+
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
+    const log = (msg, html) => { const line = document.createElement("div"); if (html) line.innerHTML = msg; else line.textContent = msg; logEl.appendChild(line); logEl.scrollTop = logEl.scrollHeight; };
+
+    const client = createPublicClient({ chain: avalancheFuji, transport: http() });
+
+    async function bundlerRpc(method, params) {
+      const r = await fetch("/api/bundler", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error.message);
+      return j.result;
+    }
+
+    let account, bundler;
+
+    function loadCredential() { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; } }
+    function saveCredential(c) { try { localStorage.setItem(STORE, JSON.stringify(c)); } catch {} }
+
+    async function setup(cred) {
+      const owner = toWebAuthnAccount({ credential: cred, rpId });
+      account = await toCoinbaseSmartAccount({ client, owners: [owner] });
+      bundler = createBundlerClient({
+        account, client, transport: http("/api/bundler"), paymaster: true,
+        userOperation: {
+          estimateFeesPerGas: async () => {
+            const p = await bundlerRpc("pimlico_getUserOperationGasPrice", []);
+            return { maxFeePerGas: BigInt(p.fast.maxFeePerGas), maxPriorityFeePerGas: BigInt(p.fast.maxPriorityFeePerGas) };
+          },
+        },
+      });
+      $("addr").textContent = account.address;
+      $("create").textContent = "Passkey ready";
+      $("create").disabled = true;
+      $("forget").hidden = false;
+      $("refresh").disabled = false;
+      $("pay").disabled = false;
+      await refresh();
+    }
+
+    async function refresh() {
+      const [bal, code] = await Promise.all([
+        client.readContract({ address: USDC, abi: erc20Abi, functionName: "balanceOf", args: [account.address] }),
+        client.getCode({ address: account.address }),
+      ]);
+      $("bal").textContent = `${formatUnits(bal, 6)} USDC`;
+      $("deployed").textContent = code && code !== "0x" ? "Yes" : "Not yet (deploys with your first payment)";
+    }
+
+    $("create").onclick = async () => {
+      try {
+        log("Creating passkey… follow the Face ID or fingerprint prompt.");
+        const c = await createWebAuthnCredential({ name: "SeedlessPay", rp: { id: rpId, name: "SeedlessPay" } });
+        const cred = { id: c.id, publicKey: c.publicKey };
+        saveCredential(cred);
+        log("Passkey created.");
+        await setup(cred);
+        log(`Wallet address: ${account.address}`);
+      } catch (e) { log("Could not create passkey: " + e.message); }
+    };
+
+    $("forget").onclick = () => { try { localStorage.removeItem(STORE); } catch {} location.reload(); };
+    $("refresh").onclick = () => refresh().catch((e) => log("Refresh failed: " + e.message));
+
+    $("pay").onclick = async () => {
+      const payee = $("payee").value.trim();
+      if (!isAddress(payee)) { log("Enter a valid payee address."); return; }
+      let amount;
+      try { amount = parseUnits($("amount").value.trim(), 6); } catch { log("Enter a valid amount."); return; }
+      if (amount <= 0n) { log("Amount must be more than zero."); return; }
+      const invoiceId = keccak256(toHex(`spike-${Date.now()}`));
+      $("pay").disabled = true;
+      try {
+        log(`Paying ${formatUnits(amount, 6)} USDC to ${getAddress(payee)}… approve with your passkey.`);
+        const hash = await bundler.sendUserOperation({
+          calls: [
+            { to: USDC, data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [SEEDLESSPAY, amount] }) },
+            { to: SEEDLESSPAY, data: encodeFunctionData({ abi: PAY_ABI, functionName: "payInvoice", args: [invoiceId, getAddress(payee), amount] }) },
+          ],
+        });
+        log(`User operation sent: ${hash}. Waiting for confirmation…`);
+        const receipt = await bundler.waitForUserOperationReceipt({ hash });
+        const tx = String(receipt.receipt.transactionHash);
+        log(receipt.success ? "Paid ✓" : "The transaction was included but failed.");
+        if (/^0x[0-9a-fA-F]{64}$/.test(tx)) log(`<a href="https://testnet.snowtrace.io/tx/${tx}" target="_blank" rel="noopener">View transaction ${tx.slice(0, 10)}… on Snowtrace ↗</a>`, true);
+        await refresh();
+      } catch (e) {
+        log("Payment failed: " + (e.shortMessage || e.message));
+      } finally { $("pay").disabled = false; }
+    };
+
+    const saved = loadCredential();
+    if (saved) { log("Found a saved passkey on this browser."); setup(saved).catch((e) => log("Setup failed: " + e.message)); }
+  </script>
+</body>
+</html>

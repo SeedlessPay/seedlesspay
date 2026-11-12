@@ -39,7 +39,7 @@ Freelancer (passkey)            Client (any wallet)
 |---|---|
 | `SeedlessPay.sol` contract + tests | ✅ in this repo |
 | Fuji testnet deployment | ✅ [`0x6F6b…fBB3`](https://testnet.snowtrace.io/address/0x6F6b2Fe036c6d4e74f45B4b80E3049Fc8d7CfBB3) |
-| Passkey smart account + gas sponsorship | ⏳ |
+| Passkey smart account + gas sponsorship | 🧪 test page at `/spike` (Coinbase Smart Wallet + Pimlico on Fuji) |
 | Landing page ([`web/`](web/)) | ✅ static, zero dependencies |
 | Invoice app | ⏳ |
 
@@ -100,6 +100,12 @@ The landing page in [`web/`](web/) is plain HTML and CSS with no build step. To 
 ### Waitlist
 
 The early-access form posts to [`web/api/waitlist.js`](web/api/waitlist.js), a Vercel Function with no dependencies that stores emails in Upstash Redis (`waitlist:emails` set, `waitlist:joined` hash). Connect a database from **Vercel → Storage → Upstash for Redis**; the function reads `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` or `KV_REST_API_URL`/`KV_REST_API_TOKEN`. Signups are rate limited per hashed IP, and a honeypot field filters bots.
+
+### Passkey wallet test (`/spike`)
+
+[`web/spike.html`](web/spike.html) is an unlisted test page for the core flow: create a passkey (WebAuthn), derive a [Coinbase Smart Wallet](https://github.com/coinbase/smart-wallet) owned by it (via viem's `toCoinbaseSmartAccount`), and pay an invoice through `SeedlessPay.sol` with USDC approve + `payInvoice` batched in one gas-sponsored user operation.
+
+Bundler and paymaster calls go through [`web/api/bundler.js`](web/api/bundler.js), which keeps the Pimlico API key on the server and only forwards the JSON-RPC methods the wallet needs. Set `PIMLICO_API_KEY` (and optionally `PIMLICO_SPONSORSHIP_POLICY_ID`) in Vercel.
 
 ## Builder
 
