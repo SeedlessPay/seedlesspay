@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/SeedlessPay/seedlesspay/security/advisories/new
+    about: Please report security issues privately, not in public issues.
+  - name: Ask a question in the community
+    url: https://t.me/seedlesspay
+    about: Questions and feedback are welcome on Telegram.

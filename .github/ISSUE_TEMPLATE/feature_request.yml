@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an idea for SeedlessPay
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Tell us about the situation, for example how you get paid today and what is hard.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like SeedlessPay to do?
+    validations:
+      required: true
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who are you?
+      options:
+        - Freelancer
+        - Client who hires freelancers
+        - Developer
+        - Other
