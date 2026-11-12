@@ -67,22 +67,38 @@
           </div>
         </div>
 
-        <figure class="invoice tilt" aria-label="Example of a paid invoice">
-          <div class="invoice__head">
-            <div>
-              <p class="label">Invoice</p>
-              <p class="invoice__no">#001</p>
-            </div>
-            <span class="status"><span aria-hidden="true">✓</span> Paid</span>
+        <div class="stage" role="img" aria-label="A client pays a SeedlessPay link and the money arrives in the freelancer's wallet">
+          <div class="stage__glow"></div>
+          <div class="chip">
+            <span class="chip__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.5-1.5"/></svg></span>
+            <span class="chip__text">
+              <span class="chip__label">Payment link</span>
+              <span class="chip__url">seedlesspay.com/pay/014</span>
+            </span>
           </div>
-          <p class="amount">$1.00 <span>USDC</span></p>
-          <dl class="invoice__rows">
-            <div><dt>Paid on</dt><dd>Nov 12, 2026</dd></div>
-            <div><dt>Network</dt><dd>Avalanche</dd></div>
-            <div><dt>Network fee</dt><dd>Less than $0.01</dd></div>
-          </dl>
-          <a class="invoice__link" href="https://testnet.snowtrace.io/tx/0xbe873b973110bb9ebf2a183c18b6636fcd9d49ab25ce2ccfcc41f668d62fa27c" rel="noopener">View the receipt <span aria-hidden="true">↗</span></a>
-        </figure>
+          <div class="coin"><div class="coin__face">$</div></div>
+          <div class="phone">
+            <div class="phone__screen">
+              <div class="phone__notch"></div>
+              <div class="toast">
+                <span class="toast__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 12.5 4 4 8-9"/></svg></span>
+                <span>
+                  <span class="toast__title">Payment received</span>
+                  <span class="toast__sub">+$250.00 USDC</span>
+                </span>
+              </div>
+              <div class="app__head"><img src="/assets/logo-mark-256.png" alt="" width="18" height="18"><span>seedlesspay</span></div>
+              <p class="app__label">Balance</p>
+              <p class="app__bal"><span class="swap swap--a">$1,000.00</span><span class="swap swap--b">$1,250.00</span></p>
+              <p class="app__unit">USDC</p>
+              <ul class="app__list">
+                <li><span>Invoice #014</span><span class="tag"><span class="swap swap--a tag--wait">Pending</span><span class="swap swap--b tag--paid">Paid</span></span></li>
+                <li><span>Invoice #013</span><span class="tag"><span class="tag--paid">Paid</span></span></li>
+                <li><span>Invoice #012</span><span class="tag"><span class="tag--paid">Paid</span></span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
