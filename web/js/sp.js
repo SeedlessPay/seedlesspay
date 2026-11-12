@@ -198,6 +198,28 @@ export function escrowSummary(escrow) {
   return open ? { label: "In escrow", tone: "wait", released } : { label: "Completed", tone: "paid", released };
 }
 
+// An in-page confirmation sheet (replaces the browser's confirm box).
+// ask({ title, body, ok, cancel, tone }) resolves true if the person confirms.
+export function ask({ title, body, ok = "Confirm", cancel = "Cancel", tone = "" }) {
+  return new Promise((resolve) => {
+    const d = document.createElement("dialog");
+    d.className = "sheet";
+    d.innerHTML = '<form method="dialog" class="sheet__card"><p class="sheet__title"></p><p class="sheet__body"></p>'
+      + '<div class="sheet__actions"><button class="btn btn--ghost" value="no" type="submit"></button><button class="btn" value="yes" type="submit"></button></div></form>';
+    d.querySelector(".sheet__title").textContent = title;
+    const b = d.querySelector(".sheet__body");
+    if (body) b.textContent = body; else b.remove();
+    const [no, yes] = d.querySelectorAll("button");
+    no.textContent = cancel; yes.textContent = ok;
+    if (tone === "danger") yes.classList.add("btn--danger");
+    d.addEventListener("click", (e) => { if (e.target === d) d.close("no"); }); // tap outside to cancel
+    d.addEventListener("close", () => { resolve(d.returnValue === "yes"); d.remove(); });
+    document.body.append(d);
+    d.showModal();
+    yes.focus();
+  });
+}
+
 // Renders the milestone list. `role` is "client", "freelancer" or null (read only).
 // `act(name, index, toPayee?)` performs a contract call and resolves when it is done.
 export function renderMilestones(ul, invoice, escrow, role, act) {
@@ -229,7 +251,7 @@ export function renderMilestones(ul, invoice, escrow, role, act) {
       const button = (text, cls, name, arg, confirmText) => {
         const b = el("button", cls, text); b.type = "button";
         b.onclick = async () => {
-          if (confirmText && !confirm(confirmText)) return;
+          if (confirmText && !(await ask(confirmText))) return;
           bar.querySelectorAll("button").forEach((x) => (x.disabled = true));
           msg.className = "form__msg small"; msg.textContent = "Confirm in your wallet…";
           try { await act(name, i, arg); msg.textContent = ""; }
@@ -242,21 +264,21 @@ export function renderMilestones(ul, invoice, escrow, role, act) {
       if (theirProposal) {
         const other = role === "client" ? "The freelancer" : "The client";
         li.append(el("p", "ms__note", `${other} proposes: ${usd(toPayee)} to the freelancer and ${usd(amount - toPayee)} back to the client.`));
-        button("Accept split", "btn btn--small", "acceptSplit", toPayee, `Accept the split? ${usd(toPayee)} goes to the freelancer and ${usd(amount - toPayee)} goes back to the client. This cannot be undone.`);
+        button("Accept split", "btn btn--small", "acceptSplit", toPayee, { title: "Accept this split?", body: `${usd(toPayee)} goes to the freelancer and ${usd(amount - toPayee)} goes back to the client. This cannot be undone.`, ok: "Accept split" });
       } else if (mine) {
         li.append(el("p", "ms__note", `You proposed ${usd(toPayee)} to the freelancer and ${usd(amount - toPayee)} back to the client. Waiting for the other side.`));
       }
 
       if (role === "client") {
-        button(`Approve and pay ${usd(amount)}`, "btn btn--small", "approve", null, `Pay ${usd(amount)} to the freelancer for "${plan.title}"? This cannot be undone.`);
+        button(`Approve and pay ${usd(amount)}`, "btn btn--small", "approve", null, { title: `Pay ${usd(amount)} for "${plan.title}"?`, body: "The money goes to the freelancer now. This cannot be undone.", ok: `Approve and pay ${usd(amount)}` });
         if (st.status === MS.Delivered && !st.reviewOver) button("Raise an issue", "btn btn--small btn--ghost", "raiseIssue", null,
-          "Raise an issue? The money stays locked while you sort it out with the freelancer. If it is not resolved within 30 days, you can take it back.");
-        if ((st.status === MS.Locked && st.overdue) || (st.status === MS.Disputed && st.deadlocked)) button(`Take back ${usd(amount)}`, "btn btn--small btn--ghost", "refund", null, `Return ${usd(amount)} to your wallet?`);
+          { title: "Raise an issue?", body: "The money stays locked while you sort it out with the freelancer. They can fix the work and deliver again. If it is not resolved within 30 days, you can take it back.", ok: "Raise an issue" });
+        if ((st.status === MS.Locked && st.overdue) || (st.status === MS.Disputed && st.deadlocked)) button(`Take back ${usd(amount)}`, "btn btn--small btn--ghost", "refund", null, { title: `Take back ${usd(amount)}?`, body: "This milestone's money goes back to your wallet.", ok: `Take back ${usd(amount)}` });
       } else {
-        if (st.status === MS.Locked) button("Mark as delivered", "btn btn--small", "markDelivered", null, `Mark "${plan.title}" as delivered? The client then has 7 days to approve it or raise an issue. If they do neither, you can claim the money.`);
-        if (st.status === MS.Disputed) button("Deliver again", "btn btn--small", "markDelivered", null, "Mark it as delivered again? The client gets a new 7-day review.");
+        if (st.status === MS.Locked) button("Mark as delivered", "btn btn--small", "markDelivered", null, { title: `Mark "${plan.title}" as delivered?`, body: "Your client then has 7 days to approve it or raise an issue. If they do neither, you can claim the money.", ok: "Mark as delivered" });
+        if (st.status === MS.Disputed) button("Deliver again", "btn btn--small", "markDelivered", null, { title: "Deliver again?", body: "Your client gets a new 7-day review.", ok: "Deliver again" });
         if (st.status === MS.Delivered && st.reviewOver) button(`Claim ${usd(amount)}`, "btn btn--small", "claim");
-        button("Return to client", "btn btn--small btn--ghost", "returnToClient", null, `Return ${usd(amount)} to the client? This cannot be undone.`);
+        button("Return to client", "btn btn--small btn--ghost", "returnToClient", null, { title: `Return ${usd(amount)} to the client?`, body: "This milestone's money goes back to your client. This cannot be undone.", ok: "Return to client", tone: "danger" });
       }
 
       // Propose a split
